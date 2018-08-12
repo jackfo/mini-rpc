@@ -1,0 +1,8 @@
+# 忽略
+*.classpath
+*.project
+*.prefs
+*/.settings/*
+/target/*
+.idea
+*.iml
