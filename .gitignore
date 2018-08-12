@@ -1,4 +1,5 @@
 # 忽略
+*.cfs
 *.classpath
 *.project
 *.prefs
@@ -6,4 +7,3 @@
 /target/*
 .idea
 *.iml
-*.cfs
