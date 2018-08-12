@@ -1,0 +1,2 @@
+cat /sys/ssh/.ssh/id_rsa
+cd /sys/ssh/.ssh
