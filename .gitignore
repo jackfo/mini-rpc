@@ -1,9 +1,0 @@
-# 忽略
-*.cfs
-*.classpath
-*.project
-*.prefs
-*/.settings/*
-/target/*
-.idea
-*.iml
