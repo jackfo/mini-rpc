@@ -26,9 +26,7 @@ public class LoggerFactory {
         if (loggerAdapter != null) {
             // 获得 Logger 对象，并打印日志，提示设置后的 LoggerAdapter 实现类
             Logger logger = loggerAdapter.getLogger(LoggerFactory.class.getName());
-
-
-            LoggerFactory.LOGGER_ADAPTER = loggerAdapter;
+            failsafeLogger =  new FailsafeLogger(logger);
 
         }
     }

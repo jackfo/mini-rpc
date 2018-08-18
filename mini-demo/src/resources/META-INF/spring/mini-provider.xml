@@ -2,12 +2,14 @@
 
 
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:mini="http://code.minibatech.com/schema/mini"
-       xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+               xmlns:mini="http://localhost/schema/mini"
+               xmlns="http://www.springframework.org/schema/beans"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://localhost/schema/mini http://localhost/schema/mini/mini.xsd
+">
 
-    <!--注意这xmlns命名要和xsd中的一致-->
-    <mini:application name="demo"/>
+<!--注意这xmlns命名要和xsd中的一致-->
+       <mini:application id="mini_001" name="demo"/>
 
 
 </beans>

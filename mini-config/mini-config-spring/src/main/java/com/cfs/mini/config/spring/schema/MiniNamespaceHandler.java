@@ -12,6 +12,7 @@ public class MiniNamespaceHandler extends NamespaceHandlerSupport {
 
     @Override
     public void init() {
+        //注册相应的bean定义解析器
         registerBeanDefinitionParser("application", new MiniBeanDefinitionParser(ApplicationConfig.class, true));
     }
 }

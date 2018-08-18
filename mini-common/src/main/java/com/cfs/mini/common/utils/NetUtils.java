@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 /**
  * IP and Port Helper for RPC
  */
-public class NetUtils {
+public class                                                                    NetUtils {
 
     public static final String LOCALHOST = "127.0.0.1";
     public static final String ANYHOST = "0.0.0.0";
