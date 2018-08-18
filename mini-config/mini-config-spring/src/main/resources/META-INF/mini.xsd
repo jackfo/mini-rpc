@@ -8,6 +8,21 @@
             xsi:schemaLocation="http://localhost/schema/mini http://localhost/schema/mini/mini.xsd">
 
 
+
+    <xsd:element name="application" type="applicationType">
+        <xsd:annotation>
+            <xsd:documentation><![CDATA[ The application config ]]></xsd:documentation>
+        </xsd:annotation>
+    </xsd:element>
+
+
+    <xsd:element name="service" type="serviceType">
+        <xsd:annotation>
+            <xsd:documentation><![CDATA[ Export service config ]]></xsd:documentation>
+        </xsd:annotation>
+    </xsd:element>
+
+
     <xsd:complexType name="applicationType">
 
         <xsd:attribute name="id" type="xsd:ID">
@@ -22,11 +37,17 @@
         </xsd:attribute>
     </xsd:complexType>
 
-    <xsd:element name="application" type="applicationType">
-        <xsd:annotation>
-            <xsd:documentation><![CDATA[ The application config ]]></xsd:documentation>
-        </xsd:annotation>
-    </xsd:element>
-
+    <xsd:complexType name="serviceType">
+        <xsd:attribute name="interface">
+            <xsd:annotation>
+                <xsd:documentation>声明提供者的接口</xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="ref">
+            <xsd:annotation>
+                <xsd:documentation>声明提供者的引用方式</xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
 
 </xsd:schema>

@@ -10,6 +10,6 @@ http://localhost/schema/mini http://localhost/schema/mini/mini.xsd
 
 <!--注意这xmlns命名要和xsd中的一致-->
        <mini:application id="mini_001" name="demo"/>
-
+       <mini:service interface="com.cfs.rpc.service.ISay" ref="isay"></mini:service>
 
 </beans>
