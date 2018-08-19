@@ -124,7 +124,12 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
         //TODO:拼接一些属性设置到ProviderConfig 根据properties文件
 
 
+        if(provider!=null){
 
+        }
+
+        // 泛化接口的实现
+        if(ref instanceof GenericService)
     }
 
     private ProviderConfig provider;
