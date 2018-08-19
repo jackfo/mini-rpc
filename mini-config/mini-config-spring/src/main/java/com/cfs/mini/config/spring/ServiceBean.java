@@ -155,7 +155,25 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
         //TODO:解析协议配置文件
         //TODO:设置其path,即网络上相应的路径,通过beanName进行相应的注入
         //TODO:如果不是延迟的话 直接进行暴露
+        if (!isDelay()) {
+            export();
+        }
 
+    }
+
+    /**
+     * 延迟时间的获取策略是先通过service来获取
+     * 如果Service不存在则通过provider来进行获取
+     *
+     * 验证是直接监听器模式或者delay为空或者-1
+     * */
+    private boolean isDelay() {
+        Integer delay = getDelay();
+        ProviderConfig provider = getProvider();
+        if (delay == null && provider != null) {
+            delay = provider.getDelay();
+        }
+        return supportedApplicationListener && (delay == null || delay == -1);
     }
 
 

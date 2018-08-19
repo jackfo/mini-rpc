@@ -50,4 +50,31 @@
         </xsd:attribute>
     </xsd:complexType>
 
+
+    <!--对应AbstractMethodConfig-->
+    <xsd:complexType name="abstractMethodType">
+        <!--定义相关xsd属性-->
+    </xsd:complexType>
+
+
+    <!--对应AbstractInterfaceConfig-->
+    <xsd:complexType name="abstractInterfaceType">
+         <xsd:complexContent>
+             <xsd:extension base="abstractMethodType">
+                 <!--定义相关xsd属性-->
+             </xsd:extension>
+         </xsd:complexContent>
+    </xsd:complexType>
+
+    <!--对应AbstractServiceConfig-->
+    <xsd:complexType name="abstractServiceType">
+          <xsd:complexContent>
+              <xsd:extension base="abstractInterfaceType">
+                  <!--定义相关xsd属性-->
+              </xsd:extension>
+          </xsd:complexContent>
+    </xsd:complexType>
+
+
+
 </xsd:schema>
