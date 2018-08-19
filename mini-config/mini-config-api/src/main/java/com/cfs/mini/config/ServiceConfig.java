@@ -1,6 +1,8 @@
 package com.cfs.mini.config;
 
 import com.cfs.mini.common.utils.NamedThreadFactory;
+import com.cfs.mini.common.utils.StringUtils;
+import com.mini.rpc.core.service.GenericService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +39,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     /**为true表示服务已经暴露*/
     private transient volatile boolean exported;
 
+
+    /**是否泛化*/
+    private volatile String generic;
 
     public void setInterfaceClass(Class<?> interfaceClass) {
         setInterface(interfaceClass);
@@ -128,8 +133,25 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 
         }
 
-        // 泛化接口的实现
-        if(ref instanceof GenericService)
+        //泛化接口的实现
+        if(ref instanceof GenericService){
+            interfaceClass = GenericService.class;
+            if (StringUtils.isEmpty(generic)) {
+                generic = Boolean.TRUE.toString();
+            }
+        }else{
+            try {
+                //加载当前类到加载器中
+                interfaceClass = Class.forName(interfaceName, true, Thread.currentThread().getContextClassLoader());
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+            // 校验接口和方法
+            checkInterfaceAndMethods(interfaceClass, methods);
+            // 校验指向的 service 对象
+            checkRef();
+            generic = Boolean.FALSE.toString();
+        }
     }
 
     private ProviderConfig provider;
