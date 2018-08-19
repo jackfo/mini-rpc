@@ -1,7 +1,12 @@
 package com.cfs.mini.config;
 
+import com.cfs.mini.common.utils.NamedThreadFactory;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ServiceConfig<T> extends AbstractServiceConfig{
 
@@ -14,12 +19,24 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
      */
     private Class<?> interfaceClass;
 
+    /**
+     * 延迟服务暴露线程池,一个定时的线程池
+     * */
+    private static final ScheduledExecutorService delayExportExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("MiniServiceDelayExporter", true));
+
 
     private T ref;
 
 
     //注册中心的配置数组
     protected List<ProtocolConfig> protocols;
+
+    /**取消服务暴露*/
+    private transient volatile boolean unexported;
+
+    /**为true表示服务已经暴露*/
+    private transient volatile boolean exported;
+
 
     public void setInterfaceClass(Class<?> interfaceClass) {
         setInterface(interfaceClass);
@@ -57,6 +74,56 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
      * 开始暴露服务
      * */
     public synchronized void export() {
+
+        //表示Service的export属性为空 则设置为Provider的export属性
+        if(provider!=null){
+            if (export == null) {
+                export = provider.getExport();
+            }
+        }
+
+        //如果export为空或者为false则表示不暴露服务
+        if (export != null && !export) {
+            return;
+        }
+
+        // 延迟暴露
+        if (delay != null && delay > 0) {
+            delayExportExecutor.schedule(new Runnable() {
+                public void run() {
+                    doExport();
+                }
+            }, delay, TimeUnit.MILLISECONDS);
+            // 立即暴露
+        } else {
+            doExport();
+        }
+    }
+
+    /**
+     *
+     * */
+    protected synchronized void doExport() {
+        //如果已经取消暴露,则当前服务不能暴露了
+        //todo 哪些情况下会取消服务暴露 以及取消暴露在框架执行的哪个过程
+        if (unexported) {
+            throw new IllegalStateException("Already unexported!");
+        }
+
+        if (exported) {
+            return;
+        }
+        //既然开始暴露服务了,就需要将这个过程设置为true
+        exported = true;
+
+        //进行相应的接口校验
+        if (interfaceName == null || interfaceName.length() == 0) {
+            throw new IllegalStateException("<mini:service interface=\"\" /> interface not allow null!");
+        }
+
+        //TODO:拼接一些属性设置到ProviderConfig 根据properties文件
+
+
 
     }
 

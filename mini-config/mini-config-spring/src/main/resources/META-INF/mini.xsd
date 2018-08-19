@@ -71,6 +71,13 @@
           <xsd:complexContent>
               <xsd:extension base="abstractInterfaceType">
                   <!--定义相关xsd属性-->
+                  <xsd:attribute name="delay" type="xsd:string" use="optional" default="0">
+                      <xsd:annotation>
+                          <xsd:documentation>
+                              <![CDATA[ The service export delay millisecond. ]]>
+                          </xsd:documentation>
+                      </xsd:annotation>
+                  </xsd:attribute>
               </xsd:extension>
           </xsd:complexContent>
     </xsd:complexType>

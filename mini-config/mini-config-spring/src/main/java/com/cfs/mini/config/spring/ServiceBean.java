@@ -102,6 +102,11 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
         logger.info("destroy");
     }
 
+    /**
+     * Service的Provider等其它属性都是在这个位置进行设置
+     * 设置了解析标签的属性注入之后
+     * 则开始进行服务暴露
+     * */
     @Override
     public void afterPropertiesSet() throws Exception {
         logger.info("afterPropertiesSet");
