@@ -40,6 +40,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     private transient volatile boolean exported;
 
 
+    /**当前服务配置的方法*/
+    private List<MethodConfig> methods;
+
+
     /**是否泛化*/
     private volatile String generic;
 
@@ -199,5 +203,23 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 //        protocol.setThreads(provider.getThreads());
 //        protocol.setParameters(provider.getParameters());
         return protocol;
+    }
+
+
+    /**
+     * 检验ref
+     * 保证ref不能为空
+     * 并且interfaceClass是一个实例
+     * 保证ref对象实现了interfaceClass接口
+     * */
+    private void checkRef() {
+        if (ref == null) {
+            throw new IllegalStateException("ref not allow null!");
+        }
+        if (!interfaceClass.isInstance(ref)) {
+            throw new IllegalStateException("The class "
+                    + ref.getClass().getName() + " unimplemented interface "
+                    + interfaceClass + "!");
+        }
     }
 }

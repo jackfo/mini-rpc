@@ -11,6 +11,9 @@ public abstract class AbstractConfig implements Serializable {
     }
 
     public void setId(String id) {
+
+        System.out.println("****************** setId");
+
         this.id = id;
     }
 }
