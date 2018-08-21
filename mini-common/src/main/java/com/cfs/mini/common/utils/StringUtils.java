@@ -336,6 +336,10 @@ public final class StringUtils {
         return buf.toString();
     }
 
+    /**
+     * 其实现的功能是遇到大写转化为.加小写
+     * 如:  naMe ==> na.me
+     * */
     public static String camelToSplitName(String camelName, String split) {
         if (camelName == null || camelName.length() == 0) {
             return camelName;

@@ -160,6 +160,8 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
         //TODO:解析协议配置文件
         //TODO:设置其path,即网络上相应的路径,通过beanName进行相应的注入
         //TODO:如果不是延迟的话 直接进行暴露
+
+        //如果具有应用监听器且延迟时间为null则进行延迟
         if (!isDelay()) {
             export();
         }

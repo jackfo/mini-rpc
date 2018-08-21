@@ -24,7 +24,7 @@ public class FailsafeLogger implements Logger {
     }
 
     private String appendContextMessage(String msg) {
-        return " [DUBBO] " + msg + ", dubbo version: " + Version.getVersion() + ", current host: " + NetUtils.getLogHost();
+        return " [MINI] " + msg + ", current host: " + NetUtils.getLogHost();
     }
 
     public void trace(String msg, Throwable e) {

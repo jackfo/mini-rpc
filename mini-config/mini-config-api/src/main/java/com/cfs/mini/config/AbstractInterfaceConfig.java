@@ -5,6 +5,30 @@ import java.util.List;
 public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
 
+    protected String stub;
+
+    public String getStub() {
+        return stub;
+    }
+
+    public void setStub(String stub) {
+        this.stub = stub;
+    }
+
+
+    /**
+     * 解析应用配置
+     *
+     * */
+    protected ApplicationConfig application;
+
+    public ApplicationConfig getApplication() {
+        return application;
+    }
+
+    public void setApplication(ApplicationConfig application) {
+        this.application = application;
+    }
 
     /**
      * 检验接口是否存在配置文件中方法

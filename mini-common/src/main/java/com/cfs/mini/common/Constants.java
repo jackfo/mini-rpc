@@ -55,9 +55,9 @@ public class Constants {
      */
     public static final String DYNAMIC_KEY = "dynamic";
 
-    public static final String DUBBO_PROPERTIES_KEY = "dubbo.properties.file";
+    public static final String MINI_PROPERTIES_KEY = "mini.properties.file";
 
-    public static final String DEFAULT_DUBBO_PROPERTIES = "dubbo.properties";
+    public static final String DEFAULT_MINI_PROPERTIES = "mini.properties";
 
     public static final String SENT_KEY = "sent";
 
@@ -525,9 +525,9 @@ public class Constants {
     public static final String CHANNEL_CALLBACK_KEY = "channel.callback.invokers.key";
 
     @Deprecated
-    public static final String SHUTDOWN_WAIT_SECONDS_KEY = "dubbo.service.shutdown.wait.seconds";
+    public static final String SHUTDOWN_WAIT_SECONDS_KEY = "mini.service.shutdown.wait.seconds";
 
-    public static final String SHUTDOWN_WAIT_KEY = "dubbo.service.shutdown.wait";
+    public static final String SHUTDOWN_WAIT_KEY = "mini.service.shutdown.wait";
 
     public static final String IS_SERVER_KEY = "isserver";
 

@@ -1,10 +1,12 @@
 package com.cfs.mini.config;
 
-import com.cfs.mini.common.utils.NamedThreadFactory;
-import com.cfs.mini.common.utils.StringUtils;
+import com.cfs.mini.common.Constants;
+import com.cfs.mini.common.Version;
+import com.cfs.mini.common.utils.*;
 import com.mini.rpc.core.service.GenericService;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,9 +32,6 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     private T ref;
 
 
-    //注册中心的配置数组
-    protected List<ProtocolConfig> protocols;
-
     /**取消服务暴露*/
     private transient volatile boolean unexported;
 
@@ -46,6 +45,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 
     /**是否泛化*/
     private volatile String generic;
+
+    protected List<RegistryConfig> registries;
 
     public void setInterfaceClass(Class<?> interfaceClass) {
         setInterface(interfaceClass);
@@ -62,6 +63,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     public void setRef(T ref) {
         this.ref = ref;
     }
+
+    private String path;
 
 
     public void setInterface(String interfaceName) {
@@ -156,6 +159,125 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
             checkRef();
             generic = Boolean.FALSE.toString();
         }
+
+
+        //处理服务接口端本地代理
+        if(stub != null){
+            if("true".equals(stub)){
+                stub = interfaceName+"Stub";
+            }
+            Class<?> stubClass=null;
+            try {
+                stubClass = ClassHelper.forNameWithThreadContextClassLoader(stub);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            if (!interfaceClass.isAssignableFrom(stubClass)) {
+                throw new IllegalStateException("The stub implementation class " + stubClass.getName() + " not implement interface " + interfaceName);
+            }
+        }
+
+        //校验ApplicationConfig
+        checkApplication();
+        // 校验 RegistryConfig 配置。
+        checkRegistry();
+        // 校验 ProtocolConfig 配置数组。
+        checkProtocol();
+        // 读取环境变量和 properties 配置到 ServiceConfig 对象。
+        appendProperties(this);
+        // 校验 Stub 和 Mock 相关的配置
+        //checkStubAndMock(interfaceClass);
+        // 服务路径，缺省为接口名
+        if (path == null || path.length() == 0) {
+            path = interfaceName;
+        }
+    }
+
+
+    /**
+     * 校验 ProtocolConfig 配置数组。
+     * 实际上，会拼接属性配置（环境变量 + properties 属性）到 ProtocolConfig 对象数组。
+     */
+    private void checkProtocol() {
+        // 当 ProtocolConfig 对象数组为空时，优先使用 `ProviderConfig.protocols` 。其次，进行创建。
+        if ((protocols == null || protocols.isEmpty())
+                && provider != null) {
+            setProtocols(provider.getProtocols());
+        }
+        // backward compatibility 向后兼容
+        if (protocols == null || protocols.isEmpty()) {
+            setProtocol(new ProtocolConfig());
+        }
+        // 拼接属性配置（环境变量 + properties 属性）到 ProtocolConfig 对象数组
+        for (ProtocolConfig protocolConfig : protocols) {
+            if (StringUtils.isEmpty(protocolConfig.getName())) {
+                protocolConfig.setName("mini");
+            }
+            appendProperties(protocolConfig);
+        }
+    }
+    /**
+     * 检验application
+     * 首先根据XML标签解析,如果标签不存在则从西戎属性中获取
+     *
+     * */
+    protected void checkApplication(){
+
+        if (application == null) {
+            String applicationName = ConfigUtils.getProperty("mini.application.name");
+            if (applicationName != null && applicationName.length() > 0) {
+                application = new ApplicationConfig();
+            }
+        }
+
+
+        if (application == null) {
+            throw new IllegalStateException(
+                    "No such application config! Please add <mini:application name=\"...\" /> to your spring config.");
+        }
+
+        //给相应的配置文件setter方法注入属性
+        appendProperties(application);
+
+        String wait = ConfigUtils.getProperty(Constants.SHUTDOWN_WAIT_KEY);
+        if (wait != null && wait.trim().length() > 0) {
+            System.setProperty(Constants.SHUTDOWN_WAIT_KEY, wait.trim());
+        } else {
+            wait = ConfigUtils.getProperty(Constants.SHUTDOWN_WAIT_SECONDS_KEY);
+            if (wait != null && wait.trim().length() > 0) {
+                System.setProperty(Constants.SHUTDOWN_WAIT_SECONDS_KEY, wait.trim());
+            }
+        }
+    }
+
+    protected void checkRegistry() {
+        // 当 RegistryConfig 对象数组为空时，若有 `dubbo.registry.address` 配置，进行创建。
+        // for backward compatibility 向后兼容
+        if (registries == null || registries.isEmpty()) {
+            String address = ConfigUtils.getProperty("dubbo.registry.address");
+            if (address != null && address.length() > 0) {
+                registries = new ArrayList<RegistryConfig>();
+                String[] as = address.split("\\s*[|]+\\s*");
+                for (String a : as) {
+                    RegistryConfig registryConfig = new RegistryConfig();
+                    registryConfig.setAddress(a);
+                    registries.add(registryConfig);
+                }
+            }
+        }
+        if ((registries == null || registries.isEmpty())) {
+            throw new IllegalStateException((getClass().getSimpleName().startsWith("Reference")
+                    ? "No such any registry to refer service in consumer "
+                    : "No such any registry to export service in provider ")
+                    + NetUtils.getLocalHost()
+                    + " use dubbo version "
+                    + Version.getVersion()
+                    + ", Please add <dubbo:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");
+        }
+        // 读取环境变量和 properties 配置到 RegistryConfig 对象数组。
+        for (RegistryConfig registryConfig : registries) {
+            appendProperties(registryConfig);
+        }
     }
 
     private ProviderConfig provider;
@@ -222,4 +344,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                     + interfaceClass + "!");
         }
     }
+
+
+
+
 }
