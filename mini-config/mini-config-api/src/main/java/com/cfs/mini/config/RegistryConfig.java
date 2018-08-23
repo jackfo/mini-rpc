@@ -4,6 +4,10 @@ import com.cfs.mini.config.support.Parameter;
 
 public class RegistryConfig extends AbstractConfig{
 
+
+    public static final String NO_AVAILABLE = "N/A";
+
+
     private String address;
 
     @Parameter(excluded = true) // 排除

@@ -1,13 +1,15 @@
 package com.cfs.mini.config;
 
 import com.cfs.mini.common.Constants;
+import com.cfs.mini.common.URL;
 import com.cfs.mini.common.Version;
+import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.utils.*;
+import com.cfs.mini.registry.RegistryFactory;
+import com.cfs.mini.registry.RegistryService;
 import com.mini.rpc.core.service.GenericService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -191,8 +193,85 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
         if (path == null || path.length() == 0) {
             path = interfaceName;
         }
+
+
     }
 
+
+    private void doExportUrls() {
+        List<URL> registryURLs = loadRegistries(true);
+        // 循环 `protocols` ，向逐个注册中心分组暴露服务。
+//        for (ProtocolConfig protocolConfig : protocols) {
+//            doExportUrlsFor1Protocol(protocolConfig, registryURLs);
+//        }
+    }
+
+
+    /**
+     * 加载注册中心数组
+     * */
+    protected List<URL> loadRegistries(boolean provider) {
+        //加载之前依旧做一个检查
+        checkRegistry();
+
+        //创建注册中心的URL数组
+        List<URL> registryList = new ArrayList<URL>();
+
+        if(registries!=null&&!registries.isEmpty()){
+            for(RegistryConfig config:registries){
+
+                String address = config.getAddress();
+
+                if(address==null||address.length()==0){
+                    address = Constants.ANYHOST_VALUE;
+                }
+
+                /**如果系统参数存在,优先使用系统参数*/
+                String sysaddress = System.getProperty("mini.registry.address");
+                if (sysaddress != null && sysaddress.length() > 0) {
+                    address = sysaddress;
+                }
+
+                if(address.length()>0&&!RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)){
+                    Map<String,String> map = new HashMap<>();
+                    //将各种参数查看进去
+                    appendParameters(map, application);
+                    appendParameters(map, config);
+                    map.put("path", RegistryService.class.getName());
+                    map.put("mini", Version.getVersion());
+                    map.put(Constants.TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
+
+                    if (ConfigUtils.getPid() > 0) {
+                        map.put(Constants.PID_KEY, String.valueOf(ConfigUtils.getPid()));
+                    }
+
+                    if (!map.containsKey("protocol")) {
+                        //通过SPi机制检测决定是使用远程还是本地注册中心
+                        if (ExtensionLoader.getExtensionLoader(RegistryFactory.class).hasExtension("remote")) { // "remote"
+                            map.put("protocol", "remote");
+                        } else {
+                            map.put("protocol", "mini");
+                        }
+                    }
+                    List<URL> urls = UrlUtils.parseURLs(address, map);
+                    // 循环 `url` ，设置 "registry" 和 "protocol" 属性。
+                    for (URL url : urls) {
+                        // 设置 `registry=${protocol}` 和 `protocol=registry` 到 URL
+                        url = url.addParameter(Constants.REGISTRY_KEY, url.getProtocol());
+                        url = url.setProtocol(Constants.REGISTRY_PROTOCOL);
+                        // 添加到结果
+                        if ((provider && url.getParameter(Constants.REGISTER_KEY, true)) // 服务提供者 && 注册 https://dubbo.gitbooks.io/dubbo-user-book/demos/subscribe-only.html
+                                || (!provider && url.getParameter(Constants.SUBSCRIBE_KEY, true))) { // 服务消费者 && 订阅 https://dubbo.gitbooks.io/dubbo-user-book/demos/registry-only.html
+                            registryList.add(url);
+                        }
+                    }
+
+                }
+
+            }
+        }
+        return registryList;
+    }
 
     /**
      * 校验 ProtocolConfig 配置数组。

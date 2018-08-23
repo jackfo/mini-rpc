@@ -1,13 +1,17 @@
 package com.cfs.mini.config;
 
+import com.cfs.mini.common.Constants;
+import com.cfs.mini.common.URL;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ConfigUtils;
 import com.cfs.mini.common.utils.StringUtils;
+import com.cfs.mini.config.support.Parameter;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -184,6 +188,87 @@ public abstract class AbstractConfig implements Serializable {
     protected static void checkName(String property, String value) {
         checkProperty(property, value, MAX_LENGTH, PATTERN_NAME);
     }
+
+
+    /**
+     * 将所有未排除getter方法参数值添加到Map
+     * */
+    protected static void appendParameters(Map<String, String> parameters, Object config) {
+        appendParameters(parameters, config, null);
+    }
+
+    protected static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
+        if(config == null){
+            return;
+        }
+
+        //获取解析配置文件中所有的方法
+        Method[] methods = config.getClass().getMethods();
+
+        for(Method method:methods){
+            try {
+                String name = method.getName();
+                if ((name.startsWith("get") || name.startsWith("is"))
+                        && !"getClass".equals(name)
+                        && Modifier.isPublic(method.getModifiers())
+                        && method.getParameterTypes().length == 0
+                        && isPrimitive(method.getReturnType())) {
+
+                    //如果参数具有相应的Parameter注解,并且excluded为true则跳过,不暴露出去
+                    Parameter parameter = method.getAnnotation(Parameter.class);
+                    if (method.getReturnType() == Object.class || parameter != null && parameter.excluded()) {
+                        continue;
+                    }
+
+                    //来检验方法是get开头还是is开头
+                    int i = name.startsWith("get") ? 3 : 2;
+                    //依旧形如methodName会转化为method.name
+                    String prop = StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");
+
+                    String key;
+                    if (parameter != null && parameter.key() != null && parameter.key().length() > 0) {
+                        key = parameter.key();
+                    } else {
+                        key = prop;
+                    }
+
+                    //获取相应的属性值
+                    Object value = method.invoke(config, new Object[0]);
+
+                    String str = String.valueOf(value).trim();
+                    if (value != null && str.length() > 0) {
+                        // 转义
+                        if (parameter != null && parameter.escaped()) {
+                            str = URL.encode(str);
+                        }
+                        //TODO:暂时未说明道理
+                        if (parameter != null && parameter.append()) {
+
+                            String pre = parameters.get(Constants.DEFAULT_KEY + "." + key); // default. 里获取，适用于 ServiceConfig =》ProviderConfig 、ReferenceConfig =》ConsumerConfig 。
+                            if (pre != null && pre.length() > 0) {
+                                str = pre + "," + str;
+                            }
+                            pre = parameters.get(key); // 通过 `parameters` 属性配置，例如 `AbstractMethodConfig.parameters` 。
+                            if (pre != null && pre.length() > 0) {
+                                str = pre + "," + str;
+                            }
+                        }
+                        if (prefix != null && prefix.length() > 0) {
+                            key = prefix + "." + key;
+                        }
+                        parameters.put(key, str);
+
+                    } else if (parameter != null && parameter.required()) {
+                        throw new IllegalStateException(config.getClass().getSimpleName() + "." + key + " == null");
+                    }
+                }
+            }catch (Exception e) {
+                //出现异常就扔个不合法异常就好了
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+        }
+    }
+
 
     public static void main(String[] args) {
         System.out.println(StringUtils.camelToSplitName("heLLo.s","."));

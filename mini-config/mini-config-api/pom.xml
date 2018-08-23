@@ -29,6 +29,13 @@
             <version>2.6.1</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.cfs</groupId>
+            <artifactId>mini-registry</artifactId>
+            <version>2.6.1</version>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
 
 

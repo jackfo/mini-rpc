@@ -291,6 +291,9 @@ public class ConfigUtils {
         return properties;
     }
 
+    /**
+     * 获取线程对应的pid
+     * */
     public static int getPid() {
         if (PID < 0) {
             try {

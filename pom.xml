@@ -103,6 +103,7 @@ limitations under the License.
         <module>mini-common</module>
         <module>mini-config</module>
         <module>mini-core-rpc</module>
+        <module>mini-registry</module>
     </modules>
 
     <dependencyManagement>
