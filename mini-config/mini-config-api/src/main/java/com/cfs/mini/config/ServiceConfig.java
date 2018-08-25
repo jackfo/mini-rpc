@@ -8,7 +8,9 @@ import com.cfs.mini.common.utils.*;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
 import com.mini.rpc.core.service.GenericService;
+import com.mini.rpc.core.support.ProtocolUtils;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,6 +42,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     /**为true表示服务已经暴露*/
     private transient volatile boolean exported;
 
+    protected String version;
 
     /**当前服务配置的方法*/
     private List<MethodConfig> methods;
@@ -200,11 +203,122 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 
     private void doExportUrls() {
         List<URL> registryURLs = loadRegistries(true);
-        // 循环 `protocols` ，向逐个注册中心分组暴露服务。
-//        for (ProtocolConfig protocolConfig : protocols) {
-//            doExportUrlsFor1Protocol(protocolConfig, registryURLs);
-//        }
+        /**
+         * 想每一个注册中心暴露服务
+         * */
+        for (ProtocolConfig protocolConfig : protocols) {
+            doExportUrlsFor1Protocol(protocolConfig, registryURLs);
+        }
     }
+
+
+    private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs){
+
+        //获取协议名
+        String name = protocolConfig.getName();
+
+        if(name==null||name.length()==0){
+            name = "mini";
+        }
+        Map<String, String> map = new HashMap<String, String>();
+
+        //添加相应的参数
+        map.put(Constants.SIDE_KEY, Constants.PROVIDER_SIDE);
+        map.put(Constants.MINI_VERSION_KEY, Version.getVersion());
+        map.put(Constants.TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
+        if (ConfigUtils.getPid() > 0) {
+            map.put(Constants.PID_KEY, String.valueOf(ConfigUtils.getPid()));
+        }
+
+        appendParameters(map, application);
+        //appendParameters(map, module);
+        appendParameters(map, provider, Constants.DEFAULT_KEY); // ProviderConfig ，为 ServiceConfig 的默认属性，因此添加 `default` 属性前缀。
+        appendParameters(map, protocolConfig);
+        appendParameters(map, this);
+
+        if (methods != null && !methods.isEmpty()) {
+            for (MethodConfig method : methods) {
+                // 将 MethodConfig 对象，添加到 `map` 集合中。
+                appendParameters(map, method, method.getName());
+                // 当 配置了 `MethodConfig.retry = false` 时，强制禁用重试
+                String retryKey = method.getName() + ".retry";
+                if (map.containsKey(retryKey)) {
+                    String retryValue = map.remove(retryKey);
+                    if ("false".equals(retryValue)) {
+                        map.put(method.getName() + ".retries", "0");
+                    }
+                }
+                // 将ArgumentConfig对象数组，添加到 `map` 集合中。
+                List<ArgumentConfig> arguments = method.getArguments();
+                if (arguments != null && !arguments.isEmpty()) {
+                    for (ArgumentConfig argument : arguments) {
+                        // convert argument type
+                        if (argument.getType() != null && argument.getType().length() > 0) {
+
+                            //获取接口类的所有方法,起参数类型和方法中像是参数类型相同,则将参数添加进去
+                            Method[] methods = interfaceClass.getMethods();
+                            if (methods != null && methods.length > 0) {
+                                for (int i = 0; i < methods.length; i++) {
+                                    String methodName = methods[i].getName();
+                                    // target the method, and get its signature
+                                    if (methodName.equals(method.getName())) { // 找到指定方法
+                                        Class<?>[] argTypes = methods[i].getParameterTypes();
+                                        // one callback in the method
+                                        if (argument.getIndex() != -1) { // 指定单个参数的位置 + 类型
+                                            if (argTypes[argument.getIndex()].getName().equals(argument.getType())) {
+                                                // 将 ArgumentConfig 对象，添加到 `map` 集合中。
+                                                appendParameters(map, argument, method.getName() + "." + argument.getIndex()); // `${methodName}.${index}`
+                                            } else {
+                                                throw new IllegalArgumentException("argument config error : the index attribute and type attribute not match :index :" + argument.getIndex() + ", type:" + argument.getType());
+                                            }
+                                        } else {
+                                            // multiple callbacks in the method
+                                            for (int j = 0; j < argTypes.length; j++) {
+                                                Class<?> argClazz = argTypes[j];
+                                                if (argClazz.getName().equals(argument.getType())) {
+                                                    // 将 ArgumentConfig 对象，添加到 `map` 集合中。
+                                                    appendParameters(map, argument, method.getName() + "." + j); // `${methodName}.${index}`
+                                                    if (argument.getIndex() != -1 && argument.getIndex() != j) { // 多余的判断，因为 `argument.getIndex() == -1` 。
+                                                        throw new IllegalArgumentException("argument config error : the index attribute and type attribute not match :index :" + argument.getIndex() + ", type:" + argument.getType());
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (argument.getIndex() != -1) { // 指定单个参数的位置
+                            // 将 ArgumentConfig 对象，添加到 `map` 集合中。
+                            appendParameters(map, argument, method.getName() + "." + argument.getIndex()); // `${methodName}.${index}`
+                        } else {
+                            throw new IllegalArgumentException("argument config must set index or type attribute.eg: <dubbo:argument index='0' .../> or <dubbo:argument type=xxx .../>");
+                        }
+
+                    }
+                }
+            } // end of methods for
+        }
+
+        if (ProtocolUtils.isGeneric(generic)) {
+            map.put("generic", generic);
+            map.put("methods", Constants.ANY_VALUE);
+        } else {
+            String revision = Version.getVersion(interfaceClass, version);
+            if (revision != null && revision.length() > 0) {
+                map.put("revision", revision); // 修订本
+            }
+
+            String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames(); // 获得方法数组
+            if (methods.length == 0) {
+                logger.warn("NO method found in service interface " + interfaceClass.getName());
+                map.put("methods", Constants.ANY_VALUE);
+            } else {
+                map.put("methods", StringUtils.join(new HashSet<String>(Arrays.asList(methods)), ","));
+            }
+        }
+
+    }
+
 
 
     /**
