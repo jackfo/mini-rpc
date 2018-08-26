@@ -3,18 +3,27 @@ package com.cfs.mini.config;
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
 import com.cfs.mini.common.Version;
+import com.cfs.mini.common.bytecode.Wrapper;
 import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.utils.*;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
+import com.mini.rpc.core.Protocol;
+import com.mini.rpc.core.cluster.ConfiguratorFactory;
 import com.mini.rpc.core.service.GenericService;
 import com.mini.rpc.core.support.ProtocolUtils;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.cfs.mini.common.utils.NetUtils.getAvailablePort;
+import static com.cfs.mini.common.utils.NetUtils.getLocalHost;
+import static com.cfs.mini.common.utils.NetUtils.isInvalidLocalHost;
 
 public class ServiceConfig<T> extends AbstractServiceConfig{
 
@@ -70,6 +79,15 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     }
 
     private String path;
+
+    protected String token;
+
+    private static final int MIN_PORT = 0;
+    private static final int MAX_PORT = 65535;
+
+
+    /**生成的随机端口*/
+    private static final Map<String, Integer> RANDOM_PORT_MAP = new HashMap<String, Integer>();
 
 
     public void setInterface(String interfaceName) {
@@ -317,9 +335,275 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
             }
         }
 
+
+
+
+        if (!ConfigUtils.isEmpty(token)) {
+            if (ConfigUtils.isDefault(token)) { // true || default 时，UUID 随机生成
+                map.put("token", UUID.randomUUID().toString());
+            } else {
+                map.put("token", token);
+            }
+        }
+        // 协议为 injvm 时，不注册，不通知。
+        if ("injvm".equals(protocolConfig.getName())) {
+            protocolConfig.setRegister(false);
+            map.put("notify", "false");
+        }
+
+        // export service
+        String contextPath = protocolConfig.getContextpath();
+        if ((contextPath == null || contextPath.length() == 0) && provider != null) {
+            contextPath = provider.getContextpath();
+        }
+
+        // host、port
+        String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
+        Integer port = this.findConfigedPorts(protocolConfig, name, map);
+
+        // 创建 Dubbo URL 对象
+        URL url = new URL(name, host, port, (contextPath == null || contextPath.length() == 0 ? "" : contextPath + "/") + path, map);
+
+        if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).hasExtension(url.getProtocol())) {
+            url = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getExtension(url.getProtocol()).getConfigurator(url).configure(url);
+        }
+
+        String scope = url.getParameter(Constants.SCOPE_KEY);
+
+
+        if (!Constants.SCOPE_NONE.equalsIgnoreCase(scope)) {
+            //如果不是远程则进行本地暴露
+            if (!Constants.SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                //TODO:本地暴露待实现
+            }
+
+            //远程暴露
+            if (!Constants.SCOPE_LOCAL.equalsIgnoreCase(scope)) {
+                if (registryURLs != null && !registryURLs.isEmpty()) {
+                    for(URL registryURL:registryURLs){
+                        /**检测参数是否是动态暴露*/
+                        url = url.addParameterIfAbsent("dynamic", registryURL.getParameter("dynamic"));
+
+                        //获得监控中心URL
+                        URL monitorUrl = loadMonitor(registryURL);
+
+                        if (monitorUrl != null) {
+                            url = url.addParameterAndEncoded(Constants.MONITOR_KEY, monitorUrl.toFullString());
+                        }
+                    }
+                }else{
+
+                }
+
+            }
+        }
+
+
     }
 
 
+    /**
+     * 加载监控中心URL
+     * */
+    protected URL loadMonitor(URL registryURL) {
+
+    }
+
+    /**
+     * 通过配置文件找主机ip
+     * 主机ip获取优先级   系统属性>protocolConfig>providerConfig>本机hostname对应ip>注册中心ip>本机第一个活跃ip
+     * */
+    private String findConfigedHosts(ProtocolConfig protocolConfig, List<URL> registryURLs, Map<String, String> map) {
+        boolean anyhost = false;
+
+
+        String hostToBind = getValueFromConfig(protocolConfig, Constants.MINI_IP_TO_BIND);
+
+        /**
+         * 如果不为空,不合法则需要扔出异常了
+         * */
+        if (hostToBind != null && hostToBind.length() > 0 && isInvalidLocalHost(hostToBind)) {
+            throw new IllegalArgumentException("Specified invalid bind ip from property:" + Constants.MINI_IP_TO_BIND + ", value:" + hostToBind);
+        }
+
+        /**
+         * 如果系统中没有,则需要通过其他方法进行获取了
+         * */
+        if(hostToBind==null || hostToBind.length()==0){
+
+
+            hostToBind = protocolConfig.getHost();
+            if (provider != null && (hostToBind == null || hostToBind.length() == 0)) {
+                hostToBind = provider.getHost();
+            }
+
+
+            if(isInvalidLocalHost(hostToBind)){
+                anyhost = true;
+                try{
+                    hostToBind = InetAddress.getLocalHost().getHostAddress();
+                }catch (UnknownHostException e){
+                    logger.warn(e.getMessage(), e);
+                }
+
+                if (isInvalidLocalHost(hostToBind)) {
+                    if (registryURLs != null && !registryURLs.isEmpty()) {
+                        for (URL registryURL : registryURLs) {
+                            try {
+                                Socket socket = new Socket();
+                                try {
+                                    SocketAddress addr = new InetSocketAddress(registryURL.getHost(), registryURL.getPort());
+                                    socket.connect(addr, 1000);
+                                    hostToBind = socket.getLocalAddress().getHostAddress();
+                                    break;
+                                } finally {
+                                    try {
+                                        socket.close();
+                                    } catch (Throwable e) {
+                                    }
+                                }
+                            } catch (Exception e) {
+                                logger.warn(e.getMessage(), e);
+                            }
+                        }
+                    }
+
+                    if (isInvalidLocalHost(hostToBind)) {
+                        hostToBind = getLocalHost();
+                    }
+
+                }
+            }
+
+        }
+
+
+        map.put(Constants.BIND_IP_KEY, hostToBind);
+
+        // 获得 `hostToRegistry` ，默认使用 `hostToBind` 。可强制指定，参见仓库 https://github.com/dubbo/dubbo-docker-sample
+        // registry ip is not used for bind ip by default
+        String hostToRegistry = getValueFromConfig(protocolConfig, Constants.MINI_IP_TO_REGISTRY);
+        if (hostToRegistry != null && hostToRegistry.length() > 0 && isInvalidLocalHost(hostToRegistry)) {
+            throw new IllegalArgumentException("Specified invalid registry ip from property:" + Constants.MINI_IP_TO_REGISTRY + ", value:" + hostToRegistry);
+        } else if (hostToRegistry == null || hostToRegistry.length() == 0) {
+            // bind ip is used as registry ip by default
+            hostToRegistry = hostToBind;
+        }
+
+        map.put(Constants.ANYHOST_KEY, String.valueOf(anyhost));
+
+        return hostToRegistry;
+    }
+
+    /**
+     * 获取端口的规则
+     * */
+    private Integer findConfigedPorts(ProtocolConfig protocolConfig, String name, Map<String, String> map) {
+        // 第一优先级，从环境变量，获得绑定的 Port 。可强制指定，参见仓库 https://github.com/dubbo/dubbo-docker-sample
+        // parse bind port from environment
+        String port = getValueFromConfig(protocolConfig, Constants.DUBBO_PORT_TO_BIND);
+        Integer portToBind = parsePort(port);
+
+        // if there's no bind port found from environment, keep looking up.
+        if (portToBind == null) {
+            // 第二优先级，从 ProtocolConfig 获得 Port 。
+            portToBind = protocolConfig.getPort();
+            if (provider != null && (portToBind == null || portToBind == 0)) {
+                portToBind = provider.getPort();
+            }
+            // 第三优先级，获得协议对应的缺省端口，
+            final int defaultPort = ExtensionLoader.getExtensionLoader(Protocol.class).getExtension(name).getDefaultPort();
+            if (portToBind == null || portToBind == 0) {
+                portToBind = defaultPort;
+            }
+            // 第四优先级，随机获得端口
+            if (portToBind <= 0) {
+                portToBind = getRandomPort(name); // 先从缓存中获得端口
+                if (portToBind == null || portToBind < 0) {
+                    // 获得可用端口
+                    portToBind = getAvailablePort(defaultPort);
+                    // 添加到缓存
+                    putRandomPort(name, portToBind);
+                }
+                logger.warn("Use random available port(" + portToBind + ") for protocol " + name);
+            }
+        }
+
+        // save bind port, used as url's key later
+        map.put(Constants.BIND_PORT_KEY, String.valueOf(portToBind));
+
+        // 获得 `portToRegistry` ，默认使用 `portToBind` 。可强制指定，参见仓库 https://github.com/dubbo/dubbo-docker-sample
+        // registry port, not used as bind port by default
+        String portToRegistryStr = getValueFromConfig(protocolConfig, Constants.DUBBO_PORT_TO_REGISTRY);
+        Integer portToRegistry = parsePort(portToRegistryStr);
+        if (portToRegistry == null) {
+            portToRegistry = portToBind;
+        }
+
+        return portToRegistry;
+    }
+
+    /**
+     * 添加随机端口到缓存中
+     *
+     * @param protocol 协议名
+     * @param port 端口
+     */
+    private static void putRandomPort(String protocol, Integer port) {
+        protocol = protocol.toLowerCase();
+        if (!RANDOM_PORT_MAP.containsKey(protocol)) {
+            RANDOM_PORT_MAP.put(protocol, port);
+        }
+    }
+
+
+
+
+    private static Integer getRandomPort(String protocol) {
+        protocol = protocol.toLowerCase();
+        if (RANDOM_PORT_MAP.containsKey(protocol)) {
+            return RANDOM_PORT_MAP.get(protocol);
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    private Integer parsePort(String configPort) {
+        Integer port = null;
+        if (configPort != null && configPort.length() > 0) {
+            try {
+                Integer intPort = Integer.parseInt(configPort);
+                if (isInvalidPort(intPort)) {
+                    throw new IllegalArgumentException("Specified invalid port from env value:" + configPort);
+                }
+                port = intPort;
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Specified invalid port from env value:" + configPort);
+            }
+        }
+        return port;
+    }
+
+
+
+    public static boolean isInvalidPort(int port) {
+        return port <= MIN_PORT || port > MAX_PORT;
+    }
+
+    /**
+     * 从协议配置对象解析对应的配置项
+     *
+     * @param protocolConfig 协议配置对象
+     * @param key 配置项
+     * @return 值
+     */
+    private String getValueFromConfig(ProtocolConfig protocolConfig, String key) {
+        String protocolPrefix = protocolConfig.getName().toUpperCase() + "_";
+        String port = ConfigUtils.getSystemProperty(protocolPrefix + key);
+        if (port == null || port.length() == 0) {
+            port = ConfigUtils.getSystemProperty(key);
+        }
+        return port;
+    }
 
     /**
      * 加载注册中心数组
@@ -462,7 +746,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
             throw new IllegalStateException((getClass().getSimpleName().startsWith("Reference")
                     ? "No such any registry to refer service in consumer "
                     : "No such any registry to export service in provider ")
-                    + NetUtils.getLocalHost()
+                    + getLocalHost()
                     + " use dubbo version "
                     + Version.getVersion()
                     + ", Please add <dubbo:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");

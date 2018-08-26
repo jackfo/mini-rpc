@@ -23,6 +23,8 @@ public abstract class AbstractConfig implements Serializable {
 
     private static final Pattern PATTERN_NAME = Pattern.compile("[\\-._0-9a-zA-Z]+");
 
+    private static final Pattern PATTERN_PATH = Pattern.compile("[/\\-$._0-9a-zA-Z]+");
+
     protected static final Logger logger = LoggerFactory.getLogger(AbstractConfig.class);
 
     protected String id;
@@ -269,6 +271,10 @@ public abstract class AbstractConfig implements Serializable {
         }
     }
 
+
+    protected static void checkPathName(String property, String value) {
+        checkProperty(property, value, MAX_PATH_LENGTH, PATTERN_PATH);
+    }
 
     public static void main(String[] args) {
         System.out.println(StringUtils.camelToSplitName("heLLo.s","."));

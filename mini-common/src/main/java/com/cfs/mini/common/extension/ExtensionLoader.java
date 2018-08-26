@@ -5,6 +5,7 @@ import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ConcurrentHashSet;
 import com.cfs.mini.common.utils.Holder;
+import com.cfs.mini.common.utils.StringUtils;
 
 
 import java.io.BufferedReader;
@@ -59,6 +60,23 @@ public class ExtensionLoader<T> {
 
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<Class<?>, String>();
 
+    private Map<String, IllegalStateException> exceptions = new ConcurrentHashMap();
+
+
+    /**
+     * 缓存的拓展对象集合
+     *
+     * key：拓展名
+     * value：拓展对象
+     *
+     * 例如，Protocol 拓展
+     *          key：dubbo value：DubboProtocol
+     *          key：injvm value：InjvmProtocol
+     *
+     * 通过 {@link #loadExtensionClasses} 加载
+     */
+    private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap();
+
     private ExtensionLoader(Class<?> type) {
         this.type = type;
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
@@ -92,6 +110,115 @@ public class ExtensionLoader<T> {
         }
         return loader;
     }
+
+
+
+    @SuppressWarnings("unchecked")
+    public T getExtension(String name) {
+        if (name == null || name.length() == 0)
+            throw new IllegalArgumentException("Extension name == null");
+        //如果name为true,查找默认当前加载器默认的实例
+        if ("true".equals(name)) {
+            return getDefaultExtension();
+        }
+
+        //从缓存中获得对应的拓展对象
+        Holder<Object> holder = cachedInstances.get(name);
+        if (holder == null) {
+            cachedInstances.putIfAbsent(name, new Holder<Object>());
+            holder = cachedInstances.get(name);
+        }
+
+        Object instance = holder.get();
+        if (instance == null) {
+            synchronized (holder) {
+                instance = holder.get();
+                // 从 缓存中 未获取到，进行创建缓存对象。
+                if (instance == null) {
+                    instance = createExtension(name);
+                    // 设置创建对象到缓存中
+                    holder.set(instance);
+                }
+            }
+        }
+        return (T) instance;
+    }
+
+    /**
+     * Return default extension, return <code>null</code> if it's not configured.
+     */
+    /**
+     * 返回缺省的扩展，如果没有设置则返回<code>null</code>。
+     */
+    public T getDefaultExtension() {
+        getExtensionClasses();
+        if (null == cachedDefaultName || cachedDefaultName.length() == 0
+                || "true".equals(cachedDefaultName)) { // 如果为 true ，不能继续调用 `#getExtension(true)` 方法，会形成死循环。
+            return null;
+        }
+        return getExtension(cachedDefaultName);
+    }
+
+    /**
+     * 创建拓展名的拓展对象，并缓存。
+     *
+     * @param name 拓展名
+     * @return 拓展对象
+     */
+    @SuppressWarnings("unchecked")
+    private T createExtension(String name) {
+        // 获得拓展名对应的拓展实现类
+        Class<?> clazz = getExtensionClasses().get(name);
+        if (clazz == null) {
+            throw findException(name); // 抛出异常
+        }
+        try {
+            // 从缓存中，获得拓展对象。
+            T instance = (T) EXTENSION_INSTANCES.get(clazz);
+            if (instance == null) {
+                // 当缓存不存在时，创建拓展对象，并添加到缓存中。
+                EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
+                instance = (T) EXTENSION_INSTANCES.get(clazz);
+            }
+            // 注入依赖的属性
+            injectExtension(instance);
+            //这段代码的作用,注入当前实例所有封装类
+            Set<Class<?>> wrapperClasses = cachedWrapperClasses;
+            if (wrapperClasses != null && !wrapperClasses.isEmpty()) {
+                for (Class<?> wrapperClass : wrapperClasses) {
+                    instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
+                }
+            }
+            return instance;
+        } catch (Throwable t) {
+            throw new IllegalStateException("Extension instance(name: " + name + ", class: " +
+                    type + ")  could not be instantiated: " + t.getMessage(), t);
+        }
+    }
+
+    private IllegalStateException findException(String name) {
+        for (Map.Entry<String, IllegalStateException> entry : exceptions.entrySet()) {
+            if (entry.getKey().toLowerCase().contains(name.toLowerCase())) {
+                return entry.getValue();
+            }
+        }
+        // 生成不存在该拓展类实现的异常。
+        StringBuilder buf = new StringBuilder("No such extension " + type.getName() + " by name " + name);
+        int i = 1;
+        for (Map.Entry<String, IllegalStateException> entry : exceptions.entrySet()) {
+            if (i == 1) {
+                buf.append(", possible causes: ");
+            }
+            buf.append("\r\n(");
+            buf.append(i++);
+            buf.append(") ");
+            buf.append(entry.getKey());
+            buf.append(":\r\n");
+            buf.append(StringUtils.toString(entry.getValue()));
+        }
+        return new IllegalStateException(buf.toString());
+    }
+
 
 
     /**检测是否存在对应的类*/
@@ -538,8 +665,7 @@ public class ExtensionLoader<T> {
                                                         // TODO name = findAnnotationName(clazz);
                                                         //name = clazz.getName();
                                                         if (name == null || name.length() == 0) {
-                                                            if (clazz.getSimpleName().length() > type.getSimpleName().length()
-                                                                    && clazz.getSimpleName().endsWith(type.getSimpleName())) {
+                                                            if (clazz.getSimpleName().length() > type.getSimpleName().length() && clazz.getSimpleName().endsWith(type.getSimpleName())) {
                                                                 name = clazz.getSimpleName().substring(0, clazz.getSimpleName().length() - type.getSimpleName().length()).toLowerCase();
                                                             } else {
                                                                 throw new IllegalStateException("No such extension name for the class " + clazz.getName() + " in the config " + url);
@@ -555,7 +681,7 @@ public class ExtensionLoader<T> {
                                                             cachedActivates.put(names[0], activate);
                                                         }
                                                         for (String n : names) {
-                                                            // 缓存到 `cachedNames`
+                                                            // 缓存到`cachedNames`
                                                             if (!cachedNames.containsKey(clazz)) {
                                                                 cachedNames.put(clazz, n);
                                                             }
@@ -574,7 +700,7 @@ public class ExtensionLoader<T> {
                                     } catch (Throwable t) {
                                         // 发生异常，记录到异常集合
                                         IllegalStateException e = new IllegalStateException("Failed to load extension class(interface: " + type + ", class line: " + line + ") in " + url + ", cause: " + t.getMessage(), t);
-                                        //exceptions.put(line, e);
+                                        exceptions.put(line, e);
                                     }
                                 }
                             } // end of while read lines
