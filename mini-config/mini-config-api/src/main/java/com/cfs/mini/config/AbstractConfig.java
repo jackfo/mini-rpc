@@ -25,6 +25,8 @@ public abstract class AbstractConfig implements Serializable {
 
     private static final Pattern PATTERN_PATH = Pattern.compile("[/\\-$._0-9a-zA-Z]+");
 
+    private static final Pattern PATTERN_NAME_HAS_SYMBOL = Pattern.compile("[:*,/\\-._0-9a-zA-Z]+");
+
     protected static final Logger logger = LoggerFactory.getLogger(AbstractConfig.class);
 
     protected String id;
@@ -49,6 +51,21 @@ public abstract class AbstractConfig implements Serializable {
         }
         tag = tag.toLowerCase();
         return tag;
+    }
+
+
+    protected static void checkParameterName(Map<String, String> parameters) {
+        if (parameters == null || parameters.size() == 0) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : parameters.entrySet()) {
+            //change by tony.chenl parameter value maybe has colon.for example napoli address
+            checkNameHasSymbol(entry.getKey(), entry.getValue());
+        }
+    }
+
+    protected static void checkNameHasSymbol(String property, String value) {
+        checkProperty(property, value, MAX_LENGTH, PATTERN_NAME_HAS_SYMBOL);
     }
 
     protected static void appendProperties(AbstractConfig config){

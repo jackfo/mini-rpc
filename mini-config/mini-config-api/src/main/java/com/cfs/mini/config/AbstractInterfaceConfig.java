@@ -31,6 +31,11 @@ public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     /**
+     *
+     * */
+    protected MonitorConfig monitor;
+
+    /**
      * 检验接口是否存在配置文件中方法
      * */
     protected void checkInterfaceAndMethods(Class<?> interfaceClass, List<MethodConfig> methods) {

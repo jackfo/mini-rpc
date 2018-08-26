@@ -6,14 +6,14 @@ import com.cfs.mini.common.Version;
 import com.cfs.mini.common.bytecode.Wrapper;
 import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.utils.*;
+import com.cfs.mini.monitor.MonitorFactory;
+import com.cfs.mini.monitor.MonitorService;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
 import com.mini.rpc.core.Protocol;
 import com.mini.rpc.core.cluster.ConfiguratorFactory;
 import com.mini.rpc.core.service.GenericService;
 import com.mini.rpc.core.support.ProtocolUtils;
-
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.util.*;
@@ -390,6 +390,12 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                         if (monitorUrl != null) {
                             url = url.addParameterAndEncoded(Constants.MONITOR_KEY, monitorUrl.toFullString());
                         }
+
+                        if (logger.isInfoEnabled()) {
+                            logger.info("Register mini service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
+                        }
+
+
                     }
                 }else{
 
@@ -406,7 +412,58 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
      * 加载监控中心URL
      * */
     protected URL loadMonitor(URL registryURL) {
+        if(monitor == null){
+            String monitorAddress = ConfigUtils.getProperty("mini.monitor.address");
+            String monitorProtocol = ConfigUtils.getProperty("mini.monitor.protocol");
 
+            if ((monitorAddress == null || monitorAddress.length() == 0) && (monitorProtocol == null || monitorProtocol.length() == 0)) {
+                return null;
+            }
+
+            monitor = new MonitorConfig();
+            if (monitorAddress != null && monitorAddress.length() > 0) {
+                monitor.setAddress(monitorAddress);
+            }
+            if (monitorProtocol != null && monitorProtocol.length() > 0) {
+                monitor.setProtocol(monitorProtocol);
+            }
+        }
+
+        appendProperties(monitor);
+        // 添加 `interface` `dubbo` `timestamp` `pid` 到 `map` 集合中
+        Map<String, String> map = new HashMap<String, String>();
+        map.put(Constants.INTERFACE_KEY, MonitorService.class.getName());
+        map.put("dubbo", Version.getVersion());
+        map.put(Constants.TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
+        if (ConfigUtils.getPid() > 0) {
+            map.put(Constants.PID_KEY, String.valueOf(ConfigUtils.getPid()));
+        }
+        // 将 MonitorConfig ，添加到 `map` 集合中。
+        appendParameters(map, monitor);
+        // 获得地址
+        String address = monitor.getAddress();
+        String sysaddress = System.getProperty("dubbo.monitor.address");
+        if (sysaddress != null && sysaddress.length() > 0) {
+            address = sysaddress;
+        }
+
+
+        if (ConfigUtils.isNotEmpty(address)) {
+            // 若不存在 `protocol` 参数，默认 "mini" 添加到 `map` 集合中。
+            if (!map.containsKey(Constants.PROTOCOL_KEY)) {
+                if (ExtensionLoader.getExtensionLoader(MonitorFactory.class).hasExtension("logstat")) {
+                    map.put(Constants.PROTOCOL_KEY, "logstat");
+                } else {
+                    map.put(Constants.PROTOCOL_KEY, "mini");
+                }
+            }
+            // 解析地址，创建 Dubbo URL 对象。
+            return UrlUtils.parseURL(address, map);
+            // 从注册中心发现监控中心地址
+        } else if (Constants.REGISTRY_PROTOCOL.equals(monitor.getProtocol()) && registryURL != null) {
+            return registryURL.setProtocol("dubbo").addParameter(Constants.PROTOCOL_KEY, "registry").addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map));
+        }
+        return null;
     }
 
     /**
