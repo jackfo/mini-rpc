@@ -10,7 +10,9 @@ import com.cfs.mini.monitor.MonitorFactory;
 import com.cfs.mini.monitor.MonitorService;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
+import com.mini.rpc.core.Invoker;
 import com.mini.rpc.core.Protocol;
+import com.mini.rpc.core.ProxyFactory;
 import com.mini.rpc.core.cluster.ConfiguratorFactory;
 import com.mini.rpc.core.service.GenericService;
 import com.mini.rpc.core.support.ProtocolUtils;
@@ -84,6 +86,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 
     private static final int MIN_PORT = 0;
     private static final int MAX_PORT = 65535;
+
+
+    private static final ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
 
     /**生成的随机端口*/
@@ -395,6 +400,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                             logger.info("Register mini service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
                         }
 
+                        Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
 
                     }
                 }else{
