@@ -302,7 +302,7 @@ public class ExtensionLoader<T> {
     }
 
 
-
+//
     private String createAdaptiveExtensionClassCode() {
 
 
@@ -792,4 +792,13 @@ public class ExtensionLoader<T> {
     private static <T> boolean withExtensionAnnotation(Class<T> type) {
         return type.isAnnotationPresent(SPI.class);
     }
+
+
+    /**获取所有的扩展加载器*/
+    public Set<String> getSupportedExtensions() {
+        Map<String, Class<?>> clazzes = getExtensionClasses();
+        return Collections.unmodifiableSet(new TreeSet<String>(clazzes.keySet()));
+    }
+
+
 }

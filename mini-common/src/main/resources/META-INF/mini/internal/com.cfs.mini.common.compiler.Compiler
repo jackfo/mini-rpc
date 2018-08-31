@@ -1,0 +1,2 @@
+adaptive=com.cfs.mini.common.compiler.support.AdaptiveCompiler
+javassist=com.cfs.mini.common.compiler.support.JavassistCompiler

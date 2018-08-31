@@ -543,7 +543,6 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
 
         map.put(Constants.BIND_IP_KEY, hostToBind);
 
-        // 获得 `hostToRegistry` ，默认使用 `hostToBind` 。可强制指定，参见仓库 https://github.com/dubbo/dubbo-docker-sample
         // registry ip is not used for bind ip by default
         String hostToRegistry = getValueFromConfig(protocolConfig, Constants.MINI_IP_TO_REGISTRY);
         if (hostToRegistry != null && hostToRegistry.length() > 0 && isInvalidLocalHost(hostToRegistry)) {
@@ -769,7 +768,6 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                 application = new ApplicationConfig();
             }
         }
-
 
         if (application == null) {
             throw new IllegalStateException(
