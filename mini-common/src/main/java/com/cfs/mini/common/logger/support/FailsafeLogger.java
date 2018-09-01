@@ -83,6 +83,14 @@ public class FailsafeLogger implements Logger {
         }
     }
 
+    public void info(String msg,String className){
+        msg = String.format("%s [%s]",msg,className);
+        try {
+            logger.info(appendContextMessage(msg));
+        } catch (Throwable t) {
+        }
+    }
+
     public void warn(String msg, Throwable e) {
         try {
             logger.warn(appendContextMessage(msg), e);

@@ -18,4 +18,14 @@ public class RegistryConfig extends AbstractConfig{
     public void setAddress(String address) {
         this.address = address;
     }
+
+    private Boolean isDefault;
+
+    public Boolean isDefault() {
+        return isDefault;
+    }
+
+    public void setDefault(Boolean isDefault) {
+        this.isDefault = isDefault;
+    }
 }

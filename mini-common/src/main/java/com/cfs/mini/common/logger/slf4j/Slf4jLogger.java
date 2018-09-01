@@ -98,6 +98,11 @@ public class Slf4jLogger implements Logger, Serializable {
         logger.info(msg);
     }
 
+    @Override
+    public void info(String msg, String className) {
+        msg = String.format("%s [%s]",msg,className);
+    }
+
     public void info(Throwable e) {
         if (locationAwareLogger != null) {
             locationAwareLogger.log(null, FQCN, LocationAwareLogger.INFO_INT, e.getMessage(), null, e);

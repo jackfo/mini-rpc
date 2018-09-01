@@ -2,9 +2,7 @@ package com.cfs.mini.config.spring;
 
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
-import com.cfs.mini.config.ProtocolConfig;
-import com.cfs.mini.config.ProviderConfig;
-import com.cfs.mini.config.ServiceConfig;
+import com.cfs.mini.config.*;
 import com.cfs.mini.config.spring.extension.SpringExtensionFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.BeanNameAware;
@@ -85,7 +83,6 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
 //            export();
 //        }
         export();
-        System.out.println("准备开始直接暴露服务了");
     }
 
     /**
@@ -115,6 +112,7 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
             Map<String, ProviderConfig> providerConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ProviderConfig.class, false, false);
 
             if(providerConfigMap!=null&&providerConfigMap.size()>0){
+
                 //找到所有协议配置文件
                 Map<String, ProtocolConfig> protocolConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ProtocolConfig.class, false, false);
 
@@ -149,6 +147,48 @@ public class ServiceBean<T> extends ServiceConfig implements InitializingBean, D
                 }
                 if (providerConfig != null) {
                     setProvider(providerConfig);
+                }
+            }
+        }
+
+        //注入Application
+        if(getApplication()==null&& (getProvider() == null || getProvider().getApplication() == null)){
+            Map<String, ApplicationConfig> applicationConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ApplicationConfig.class, false, false);
+
+            if (applicationConfigMap != null && applicationConfigMap.size() > 0) {
+                ApplicationConfig applicationConfig = null;
+                for (ApplicationConfig config : applicationConfigMap.values()) {
+                    if (config.isDefault() == null || config.isDefault().booleanValue()) {
+                        if (applicationConfig != null) {
+                            throw new IllegalStateException("Duplicate application configs: " + applicationConfig + " and " + config);
+                        }
+                        applicationConfig = config;
+                    }
+                }
+                if (applicationConfig != null) {
+                    setApplication(applicationConfig);
+                }
+            }
+        }
+
+        /**
+         * 当前ServiceBean中Registries为空
+         * ProvideConfig中Registries为空
+         * ApplicationConfig中Registries为空
+         *
+         * 获取上下文中所有的RegistryConfig,将其添加到对应的集合最后注入当前ServiceBean
+         * */
+        if ((getRegistries() == null || getRegistries().isEmpty()) && (getProvider() == null || getProvider().getRegistries() == null || getProvider().getRegistries().isEmpty()) && (getApplication() == null || getApplication().getRegistries() == null || getApplication().getRegistries().isEmpty())) {
+            Map<String, RegistryConfig> registryConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, RegistryConfig.class, false, false);
+            if (registryConfigMap != null && registryConfigMap.size() > 0) {
+                List<RegistryConfig> registryConfigs = new ArrayList<RegistryConfig>();
+                for (RegistryConfig config : registryConfigMap.values()) {
+                    if (config.isDefault() == null || config.isDefault().booleanValue()) {
+                        registryConfigs.add(config);
+                    }
+                }
+                if (registryConfigs != null && !registryConfigs.isEmpty()) {
+                    super.setRegistries(registryConfigs);
                 }
             }
         }

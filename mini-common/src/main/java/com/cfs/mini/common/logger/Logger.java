@@ -53,6 +53,9 @@ public interface Logger {
      */
     void info(String msg);
 
+
+    void info(String msg,String className);
+
     /**
      * Logs an error with info log level.
      *

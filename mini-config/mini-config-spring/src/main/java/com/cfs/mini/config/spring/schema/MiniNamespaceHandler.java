@@ -3,6 +3,7 @@ package com.cfs.mini.config.spring.schema;
 import com.cfs.mini.config.ApplicationConfig;
 import com.cfs.mini.config.ProtocolConfig;
 import com.cfs.mini.config.ProviderConfig;
+import com.cfs.mini.config.RegistryConfig;
 import com.cfs.mini.config.spring.ServiceBean;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
@@ -20,5 +21,7 @@ public class MiniNamespaceHandler extends NamespaceHandlerSupport {
         registerBeanDefinitionParser("service", new MiniBeanDefinitionParser(ServiceBean.class, true));
         registerBeanDefinitionParser("provider", new MiniBeanDefinitionParser(ProviderConfig.class, true));
         registerBeanDefinitionParser("protocol", new MiniBeanDefinitionParser(ProtocolConfig.class, true));
+        registerBeanDefinitionParser("registry", new MiniBeanDefinitionParser(RegistryConfig.class, true));
+
     }
 }

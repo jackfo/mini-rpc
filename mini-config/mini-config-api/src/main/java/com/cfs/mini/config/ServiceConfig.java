@@ -62,8 +62,6 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     /**是否泛化*/
     private volatile String generic;
 
-    protected List<RegistryConfig> registries;
-
     public void setInterfaceClass(Class<?> interfaceClass) {
         setInterface(interfaceClass);
     }
@@ -219,6 +217,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
         if (path == null || path.length() == 0) {
             path = interfaceName;
         }
+
+
 
 
     }
@@ -788,11 +788,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
         }
     }
 
+    /**
+     * 检查registries 如果registries会通过系统属性再进行获取,以及不存在则会扔出异常
+     * */
     protected void checkRegistry() {
-        // 当 RegistryConfig 对象数组为空时，若有 `dubbo.registry.address` 配置，进行创建。
+        // 当 RegistryConfig 对象数组为空时，若有 `mini.registry.address` 配置，进行创建。
         // for backward compatibility 向后兼容
         if (registries == null || registries.isEmpty()) {
-            String address = ConfigUtils.getProperty("dubbo.registry.address");
+            String address = ConfigUtils.getProperty("mini.registry.address");
             if (address != null && address.length() > 0) {
                 registries = new ArrayList<RegistryConfig>();
                 String[] as = address.split("\\s*[|]+\\s*");
@@ -803,6 +806,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                 }
             }
         }
+
         if ((registries == null || registries.isEmpty())) {
             throw new IllegalStateException((getClass().getSimpleName().startsWith("Reference")
                     ? "No such any registry to refer service in consumer "
@@ -810,8 +814,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                     + getLocalHost()
                     + " use dubbo version "
                     + Version.getVersion()
-                    + ", Please add <dubbo:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");
+                    + ", Please add <mini:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");
         }
+
         // 读取环境变量和 properties 配置到 RegistryConfig 对象数组。
         for (RegistryConfig registryConfig : registries) {
             appendProperties(registryConfig);

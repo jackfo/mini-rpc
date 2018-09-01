@@ -30,6 +30,18 @@ public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         this.application = application;
     }
 
+
+    protected List<RegistryConfig> registries;
+
+    public List<RegistryConfig> getRegistries() {
+        return registries;
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public void setRegistries(List<? extends RegistryConfig> registries) {
+        this.registries = (List<RegistryConfig>) registries;
+    }
+
     /**
      *
      * */

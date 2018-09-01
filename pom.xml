@@ -105,6 +105,7 @@ limitations under the License.
         <module>mini-core-rpc</module>
         <module>mini-registry</module>
         <module>mini-monitor</module>
+        <module>mini-spring</module>
     </modules>
 
     <dependencyManagement>

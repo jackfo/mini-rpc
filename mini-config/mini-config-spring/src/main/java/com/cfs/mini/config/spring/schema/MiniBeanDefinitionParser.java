@@ -26,6 +26,8 @@ import java.util.Set;
 
 public class MiniBeanDefinitionParser implements BeanDefinitionParser {
 
+    public static final String module = MiniBeanDefinitionParser.class.getName();
+
     private static final Logger logger = LoggerFactory.getLogger(MiniBeanDefinitionParser.class);
 
     private final Class<?> beanClass;
@@ -44,7 +46,7 @@ public class MiniBeanDefinitionParser implements BeanDefinitionParser {
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
 
-        logger.info("解析MiniBeanDefinitionParser的parse");
+        logger.info("解析MiniBeanDefinitionParser的parse",module);
 
         RootBeanDefinition beanDefinition = new RootBeanDefinition();
         beanDefinition.setBeanClass(beanClass);

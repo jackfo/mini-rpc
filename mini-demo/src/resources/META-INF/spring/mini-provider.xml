@@ -12,6 +12,9 @@ http://localhost/schema/mini http://localhost/schema/mini/mini.xsd
 
        <!--注意这xmlns命名要和xsd中的一致-->
        <mini:application id="mini_001" name="demo"/>
+
+       <mini:registry address="zookeeper://127.0.0.1:2181"  />
+
        <mini:service interface="com.cfs.rpc.service.ISay" ref="isay"></mini:service>
 
 </beans>
