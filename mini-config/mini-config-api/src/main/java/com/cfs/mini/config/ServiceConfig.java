@@ -47,6 +47,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     private T ref;
 
 
+    private final List<URL> urls = new ArrayList<URL>();
+
     /**取消服务暴露*/
     private transient volatile boolean unexported;
 
@@ -219,7 +221,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
         }
 
 
+        //暴露服务
+        doExportUrls();
 
+        //TODO
 
     }
 
@@ -406,10 +411,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                 }else{
 
                 }
-
             }
         }
-
+        this.urls.add(url);
 
     }
 
