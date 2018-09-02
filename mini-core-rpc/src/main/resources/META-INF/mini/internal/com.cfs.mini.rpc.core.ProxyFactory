@@ -1,0 +1,1 @@
+javassist=com.cfs.mini.rpc.core.proxy.javassist.JavassistProxyFactory
