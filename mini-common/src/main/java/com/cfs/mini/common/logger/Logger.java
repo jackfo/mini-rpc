@@ -115,6 +115,8 @@ public interface Logger {
      */
     void error(String msg, Throwable e);
 
+    void error(String msg,String module);
+
     /**
      * Is trace logging currently enabled?
      *

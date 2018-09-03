@@ -3,6 +3,7 @@ package com.cfs.mini.common.logger.support;
 import com.cfs.mini.common.Version;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.utils.NetUtils;
+import org.slf4j.spi.LocationAwareLogger;
 
 public class FailsafeLogger implements Logger {
 
@@ -108,6 +109,14 @@ public class FailsafeLogger implements Logger {
     public void error(String msg, Throwable e) {
         try {
             logger.error(appendContextMessage(msg), e);
+        } catch (Throwable t) {
+        }
+    }
+
+    public void error(String msg, String className) {
+        msg = String.format("%s [%s]",msg,className);
+        try {
+            logger.error(appendContextMessage(msg));
         } catch (Throwable t) {
         }
     }

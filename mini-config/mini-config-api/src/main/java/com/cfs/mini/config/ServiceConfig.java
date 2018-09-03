@@ -6,10 +6,12 @@ import com.cfs.mini.common.Version;
 import com.cfs.mini.common.bytecode.Wrapper;
 import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.utils.*;
+import com.cfs.mini.config.invoker.DelegateProviderMetaDataInvoker;
 import com.cfs.mini.monitor.MonitorFactory;
 import com.cfs.mini.monitor.MonitorService;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
+import com.cfs.mini.rpc.core.Exporter;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.Protocol;
 import com.cfs.mini.rpc.core.ProxyFactory;
@@ -91,8 +93,12 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
     private static final ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
 
+    private static final Protocol protocol = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
+
     /**生成的随机端口*/
     private static final Map<String, Integer> RANDOM_PORT_MAP = new HashMap<String, Integer>();
+
+    private final List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
 
 
     public void setInterface(String interfaceName) {
@@ -405,7 +411,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                             logger.info("Register mini service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
                         }
 
+                        //获取相应的调用Wrapper
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
+
+                        DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
+
+                        Exporter<?> exporter = protocol.export(wrapperInvoker);
+                        // 添加到 `exporters`
+                        exporters.add(exporter);
 
                     }
                 }else{
@@ -722,6 +735,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig{
                     for (URL url : urls) {
                         // 设置 `registry=${protocol}` 和 `protocol=registry` 到 URL
                         url = url.addParameter(Constants.REGISTRY_KEY, url.getProtocol());
+                        //设置相应的协议
                         url = url.setProtocol(Constants.REGISTRY_PROTOCOL);
                         // 添加到结果
                         if ((provider && url.getParameter(Constants.REGISTER_KEY, true)) // 服务提供者 && 注册 https://dubbo.gitbooks.io/dubbo-user-book/demos/subscribe-only.html

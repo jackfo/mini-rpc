@@ -167,6 +167,15 @@ public class Slf4jLogger implements Logger, Serializable {
         logger.error(msg, e);
     }
 
+    public void error(String msg, String className) {
+        msg = String.format("%s [%s]",msg,className);
+        if (locationAwareLogger != null) {
+            locationAwareLogger.log(null, FQCN, LocationAwareLogger.ERROR_INT, msg, null, null);
+            return;
+        }
+        logger.error(msg);
+    }
+
     public boolean isTraceEnabled() {
         return logger.isTraceEnabled();
     }

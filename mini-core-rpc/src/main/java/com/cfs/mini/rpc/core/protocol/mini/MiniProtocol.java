@@ -14,6 +14,9 @@ public class MiniProtocol extends AbstractProtocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        throw new RuntimeException("运行时异常");
+
+
         return null;
     }
 

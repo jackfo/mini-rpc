@@ -318,7 +318,7 @@ public class ConfigUtils {
                 timeout = Integer.parseInt(value);
             } catch (Exception e) {
             }
-        // 若为空，获得 "dubbo.service.shutdown.wait.seconds" 配置项，单位：秒。
+        // 若为空，获得 "mini.service.shutdown.wait.seconds" 配置项，单位：秒。
         // ps：目前已经废弃该参数，推荐使用 "dubbo.service.shutdown.wait"
         } else {
             value = ConfigUtils.getProperty(Constants.SHUTDOWN_WAIT_SECONDS_KEY);

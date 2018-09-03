@@ -77,7 +77,7 @@ public class Constants {
 
     public static final String DEFAULT_CLUSTER = "failover";
 
-    public static final String DEFAULT_DIRECTORY = "dubbo";
+    public static final String DEFAULT_DIRECTORY = "mini";
 
     public static final String DEFAULT_LOADBALANCE = "random";
 
