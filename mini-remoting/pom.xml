@@ -9,19 +9,15 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>mini-core-rpc</artifactId>
-
+    <artifactId>mini-remoting</artifactId>
     <dependencies>
         <dependency>
             <groupId>com.cfs</groupId>
             <artifactId>mini-common</artifactId>
             <version>2.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.cfs</groupId>
-            <artifactId>mini-remoting</artifactId>
-            <version>2.6.1</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
+
+
 </project>

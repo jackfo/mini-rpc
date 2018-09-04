@@ -106,6 +106,7 @@ limitations under the License.
         <module>mini-registry</module>
         <module>mini-monitor</module>
         <module>mini-spring</module>
+        <module>mini-remoting</module>
     </modules>
 
     <dependencyManagement>
