@@ -2,11 +2,16 @@ package com.cfs.mini.rpc.core.protocol.mini;
 
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
+import com.cfs.mini.remoting.RemotingException;
+import com.cfs.mini.remoting.exchange.ExchangeChannel;
+import com.cfs.mini.remoting.exchange.ExchangeHandler;
 import com.cfs.mini.remoting.exchange.ExchangeServer;
+import com.cfs.mini.remoting.exchange.Exchangers;
 import com.cfs.mini.rpc.core.Exporter;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.RpcException;
 import com.cfs.mini.rpc.core.protocol.AbstractProtocol;
+import com.cfs.mini.rpc.core.support.ExchangeHandlerAdapter;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
 
 import java.util.Map;
@@ -31,6 +36,9 @@ public class MiniProtocol extends AbstractProtocol {
 
     /**
      * 根据相应的ServiceKey将invoker封装进去添加到Map
+     *
+     * 在export过程中会暴bind服务,这样外部就可以进行访问了
+     *
      * */
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
@@ -42,15 +50,12 @@ public class MiniProtocol extends AbstractProtocol {
 
         exporterMap.put(key,miniExporter);
 
-        ExchangeServer server;
 
-        try {
-            server = Exchangers.bind(url, requestHandler);
-        } catch (RemotingException e) {
-            throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
-        }
 
-        return null;
+        openServer(url);
+
+
+        return miniExporter;
     }
 
     /**
@@ -66,8 +71,30 @@ public class MiniProtocol extends AbstractProtocol {
         }
     }
 
+
+    private ExchangeServer createServer(URL url) {
+
+        ExchangeServer server;
+
+        try {
+            server = Exchangers.bind(url, requestHandler);
+        } catch (RemotingException e) {
+            throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
+        }
+        return server;
+
+    }
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         return null;
     }
+
+    private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
+        @Override
+        public Object reply(ExchangeChannel channel, Object message) throws RemotingException {
+
+            throw new RuntimeException("reply...");
+        }
+
+    };
 }

@@ -16,7 +16,6 @@ import com.cfs.mini.rpc.core.Protocol;
 import com.cfs.mini.rpc.core.RpcException;
 import com.cfs.mini.rpc.core.cluster.Configurator;
 import com.cfs.mini.rpc.core.protocol.InvokerWrapper;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +40,14 @@ public class RegistryProtocol implements Protocol {
     private static RegistryProtocol INSTANCE;
 
     private RegistryFactory registryFactory;
+
+    public RegistryFactory getRegistryFactory() {
+        return registryFactory;
+    }
+
+    public void setRegistryFactory(RegistryFactory registryFactory) {
+        this.registryFactory = registryFactory;
+    }
 
     public void setProtocol(Protocol protocol) {
         this.protocol = protocol;
