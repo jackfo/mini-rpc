@@ -8,6 +8,6 @@ public class AbstractZookeeperClient<TargetChildListener> implements ZookeeperCl
     private final URL url;
 
     public AbstractZookeeperClient(URL url) {
-        thiZkclientZookeeperClients.url = url;
+        this.url = url;
     }
 }
