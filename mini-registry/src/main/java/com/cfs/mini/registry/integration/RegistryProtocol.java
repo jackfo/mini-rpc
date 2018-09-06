@@ -67,30 +67,35 @@ public class RegistryProtocol implements Protocol {
     @Override
     public <T> Exporter<T> export(Invoker<T> originInvoker) throws RpcException {
 
-        //本地暴露服务
+        /**本地通过netty等形式将服务暴露*/
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker);
 
+        /**获取相应的registryUrl*/
         URL registryUrl = getRegistryUrl(originInvoker);
 
+        /**连接zookeeper等注册中心*/
         final Registry registry = getRegistry(originInvoker);
 
+        /**主要是移除了一些参数*/
         final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
 
+        /**检测当前服务是否需要注册到注册中心*/
         boolean register = registedProviderUrl.getParameter("register", true);
 
-        /**将当前originInvoker添加到对应的MAP*/
+        /**将当前服务添加到一个全局MAP集合*/
         ProviderConsumerRegTable.registerProvider(originInvoker, registryUrl, registedProviderUrl);
 
 
         if (register) {
+            /**在这里只是添加到注册集合,供本地调用*/
             register(registryUrl, registedProviderUrl);
-            ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true); // // 标记向本地注册表的注册服务提供者，已经注册
+            /** 标记向本地注册表的注册服务提供者，已经注册*/
+            ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true);
         }
 
-
+        /**添加定义URL的监听器*/
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
-
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         return new DestroyableExporter<T>(exporter, originInvoker, overrideSubscribeUrl, registedProviderUrl);

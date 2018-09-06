@@ -7,17 +7,19 @@ import com.cfs.mini.remoting.exchange.ExchangeChannel;
 import com.cfs.mini.remoting.exchange.ExchangeHandler;
 import com.cfs.mini.remoting.exchange.ExchangeServer;
 import com.cfs.mini.remoting.exchange.Exchangers;
+import com.cfs.mini.remoting.exchange.suport.ExchangeHandlerAdapter;
 import com.cfs.mini.rpc.core.Exporter;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.RpcException;
 import com.cfs.mini.rpc.core.protocol.AbstractProtocol;
-import com.cfs.mini.rpc.core.support.ExchangeHandlerAdapter;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MiniProtocol extends AbstractProtocol {
+
+    public static final int DEFAULT_PORT = 20880;
 
     /**暴露的MAP映射*/
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<>();
@@ -31,7 +33,7 @@ public class MiniProtocol extends AbstractProtocol {
 
     @Override
     public int getDefaultPort() {
-        return 0;
+        return DEFAULT_PORT;
     }
 
     /**
@@ -50,10 +52,7 @@ public class MiniProtocol extends AbstractProtocol {
 
         exporterMap.put(key,miniExporter);
 
-
-
         openServer(url);
-
 
         return miniExporter;
     }
@@ -68,6 +67,11 @@ public class MiniProtocol extends AbstractProtocol {
 
         if(isServer){
             ExchangeServer server = serverMap.get(key);
+            if (server == null) {
+                serverMap.put(key, createServer(url));
+            } else {
+                server.reset(url);
+            }
         }
     }
 
@@ -86,7 +90,7 @@ public class MiniProtocol extends AbstractProtocol {
     }
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
-        return null;
+        throw new RuntimeException("refer...");
     }
 
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {

@@ -33,7 +33,6 @@ public class HeaderExchanger implements Exchanger {
      * */
     @Override
     public ExchangeClient connect(URL url, ExchangeHandler handler) throws RemotingException {
-
-        return null;
+       throw new RuntimeException("运行异常");
     }
 }

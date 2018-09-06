@@ -1,0 +1,2 @@
+ /usr/local/Cellar/zookeeper/3.4.12
+ /usr/local/etc/zookeeper/zoo.cfg

@@ -23,7 +23,11 @@ public class ZkClientWrapper {
     public ZkClientWrapper(final String serverAddr,long timeout){
         this.timeout = timeout;
 
-        //创建相应连接zookeeper的客户端
+        /**
+         *  采用ListenableFutureTask这种future这种模式主要有两个原因
+         *  1.能后在执行完毕后执行一些监听线程
+         *  2.能够获取所有执行超时的zkClient
+         */
         listenableFutureTask = ListenableFutureTask.create(new Callable<ZkClient>() {
             @Override
             public ZkClient call() throws Exception {

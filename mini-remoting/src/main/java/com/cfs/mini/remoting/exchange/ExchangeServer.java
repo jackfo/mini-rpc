@@ -1,5 +1,8 @@
 package com.cfs.mini.remoting.exchange;
 
-public interface ExchangeServer {
+import com.cfs.mini.remoting.Server;
+
+public interface ExchangeServer extends Server{
+
 
 }

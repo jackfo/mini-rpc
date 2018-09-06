@@ -21,11 +21,14 @@
             <groupId>com.101tec</groupId>
             <artifactId>zkclient</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>com.cfs</groupId>
-            <artifactId>mini-registry</artifactId>
-            <version>2.6.1</version>
-            <scope>compile</scope>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
         </dependency>
     </dependencies>
 

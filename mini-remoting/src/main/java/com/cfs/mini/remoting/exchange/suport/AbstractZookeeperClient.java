@@ -1,4 +1,4 @@
-package com.cfs.mini.registry.support;
+package com.cfs.mini.remoting.exchange.suport;
 
 import com.cfs.mini.common.URL;
 import com.cfs.mini.remoting.zookeeper.ZookeeperClient;

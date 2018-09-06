@@ -1,0 +1,2 @@
+zkclient=com.cfs.mini.remoting.zookeeper.zkclient.ZkclientZookeeperTransporter
+curator=com.cfs.mini.remoting.zookeeper.curator.CuratorZookeeperTransporter

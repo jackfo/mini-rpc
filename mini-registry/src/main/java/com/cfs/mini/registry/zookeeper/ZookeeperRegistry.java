@@ -2,11 +2,11 @@ package com.cfs.mini.registry.zookeeper;
 
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
-import com.cfs.mini.registry.support.AbstractRegistry;
+import com.cfs.mini.registry.support.FailbackRegistry;
 import com.cfs.mini.remoting.zookeeper.ZookeeperClient;
 import com.cfs.mini.remoting.zookeeper.ZookeeperTransporter;
 
-public class ZookeeperRegistry extends AbstractRegistry {
+public class ZookeeperRegistry extends FailbackRegistry {
 
     private final static String DEFAULT_ROOT = "mini";
 
