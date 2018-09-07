@@ -203,7 +203,7 @@ public class ExtensionLoader<T> {
             }
         }
         // 生成不存在该拓展类实现的异常。
-        StringBuilder buf = new StringBuilder("No such extension " + type.getName() + " by name " + name);
+        StringBuilder buf = new StringBuilder("No such extension " + type.getName() + String.format("\t[the name is %s,please see the spi config whether have some problem]",name));
         int i = 1;
         for (Map.Entry<String, IllegalStateException> entry : exceptions.entrySet()) {
             if (i == 1) {
@@ -700,7 +700,9 @@ public class ExtensionLoader<T> {
                                     } catch (Throwable t) {
                                         // 发生异常，记录到异常集合
                                         IllegalStateException e = new IllegalStateException("Failed to load extension class(interface: " + type + ", class line: " + line + ") in " + url + ", cause: " + t.getMessage(), t);
+
                                         exceptions.put(line, e);
+                                        throw new IllegalStateException("Failed to load extension class(interface: " + type + ", class line: " + line + ") in " + url + ", cause: " + t.getMessage(), t);
                                     }
                                 }
                             } // end of while read lines

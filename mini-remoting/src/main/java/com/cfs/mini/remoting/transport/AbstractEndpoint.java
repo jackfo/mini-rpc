@@ -8,8 +8,10 @@ import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.remoting.ChannelHandler;
+import com.cfs.mini.remoting.Codec;
 import com.cfs.mini.remoting.Codec2;
 import com.cfs.mini.remoting.RemotingException;
+import com.cfs.mini.remoting.transport.codec.CodecAdapter;
 
 import java.net.InetSocketAddress;
 
@@ -48,7 +50,7 @@ public class AbstractEndpoint extends AbstractPeer implements Resetable {
         if (ExtensionLoader.getExtensionLoader(Codec2.class).hasExtension(codecName)) { // 例如，在 DubboProtocol 中，会获得 DubboCodec
             return ExtensionLoader.getExtensionLoader(Codec2.class).getExtension(codecName);
         } else {
-            throw new RuntimeException("运行时相关异常");
+            return new CodecAdapter(ExtensionLoader.getExtensionLoader(Codec.class).getExtension(codecName));
         }
     }
 
