@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mini="http://localhost/schema/mini"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://localhost/schema/mini http://localhost/schema/mini/mini.xsd
+">
+
+    <mini:application name="demo" id="mini_001"></mini:application>
+
+    <mini:registry address="zookeeper://127.0.0.1:2181"></mini:registry>
+
+    <mini:reference id="isay" interface="com.cfs.rpc.service.ISay"></mini:reference>
+
+</beans>

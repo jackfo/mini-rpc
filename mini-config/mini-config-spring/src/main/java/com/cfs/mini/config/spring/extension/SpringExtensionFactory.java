@@ -14,6 +14,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
      */
     private static final Set<ApplicationContext> contexts = new ConcurrentHashSet<ApplicationContext>();
 
+
     public static void addApplicationContext(ApplicationContext context) {
         contexts.add(context);
     }

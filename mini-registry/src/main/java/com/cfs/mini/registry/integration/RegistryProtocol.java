@@ -73,7 +73,7 @@ public class RegistryProtocol implements Protocol {
         /**获取相应的registryUrl*/
         URL registryUrl = getRegistryUrl(originInvoker);
 
-        /**连接zookeeper等注册中心*/
+        /**连接zookeeper等注册中心并进行相关注册*/
         final Registry registry = getRegistry(originInvoker);
 
         /**主要是移除了一些参数*/
@@ -87,7 +87,7 @@ public class RegistryProtocol implements Protocol {
 
 
         if (register) {
-            /**在这里只是添加到注册集合,供本地调用*/
+            /**将相应URL注册到注册中心*/
             register(registryUrl, registedProviderUrl);
             /** 标记向本地注册表的注册服务提供者，已经注册*/
             ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true);

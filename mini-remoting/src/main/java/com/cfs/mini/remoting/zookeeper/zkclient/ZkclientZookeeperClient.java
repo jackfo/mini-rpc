@@ -17,4 +17,19 @@ public class ZkclientZookeeperClient extends AbstractZookeeperClient<IZkChildLis
         //添加相应监听事件
         client.start();
     }
+
+    @Override
+    protected void createPersistent(String path) {
+
+    }
+
+    @Override
+    protected void createEphemeral(String path) {
+
+    }
+
+    @Override
+    protected boolean checkExists(String path) {
+        return false;
+    }
 }

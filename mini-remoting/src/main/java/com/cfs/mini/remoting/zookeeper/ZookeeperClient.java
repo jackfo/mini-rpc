@@ -6,5 +6,5 @@ package com.cfs.mini.remoting.zookeeper;
  * */
 public interface ZookeeperClient {
 
-
+    void create(String path, boolean ephemeral);
 }
