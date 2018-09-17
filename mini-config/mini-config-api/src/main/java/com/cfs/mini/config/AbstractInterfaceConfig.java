@@ -225,9 +225,9 @@ public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                     ? "No such any registry to refer service in consumer "
                     : "No such any registry to export service in provider ")
                     + getLocalHost()
-                    + " use dubbo version "
+                    + " use mini version "
                     + Version.getVersion()
-                    + ", Please add <mini:registry address=\"...\" /> to your spring config. If you want unregister, please set <dubbo:service registry=\"N/A\" />");
+                    + ", Please add <mini:registry address=\"...\" /> to your spring config. If you want unregister, please set <mini:service registry=\"N/A\" />");
         }
 
         // 读取环境变量和 properties 配置到 RegistryConfig 对象数组。

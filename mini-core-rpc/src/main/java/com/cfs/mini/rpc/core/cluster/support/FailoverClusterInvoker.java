@@ -88,5 +88,6 @@ public class FailoverClusterInvoker<T> extends  AbstractClusterInvoker<T> implem
         }
 
 
+        throw new RpcException("FailoverClusterInvoker调用失败");
     }
 }

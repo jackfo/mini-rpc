@@ -4,6 +4,7 @@ import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ReflectUtils;
 import com.cfs.mini.common.utils.StringUtils;
+import com.cfs.mini.config.ConsumerConfig;
 import com.cfs.mini.config.ProtocolConfig;
 import com.cfs.mini.config.ProviderConfig;
 import com.cfs.mini.config.spring.ServiceBean;
@@ -58,7 +59,11 @@ public class MiniBeanDefinitionParser implements BeanDefinitionParser {
             // 生成 id 。不同的配置对象，会存在不同。
             String generatedBeanName = element.getAttribute("name");
             if (generatedBeanName == null || generatedBeanName.length() == 0) {
-                //TODO:加了协议之后加载
+                if (ProtocolConfig.class.equals(beanClass)) {
+                    generatedBeanName = "mini";
+                } else {
+                    generatedBeanName = element.getAttribute("interface");
+                }
             }
             if (generatedBeanName == null || generatedBeanName.length() == 0) {
                 generatedBeanName = beanClass.getName();
@@ -84,9 +89,6 @@ public class MiniBeanDefinitionParser implements BeanDefinitionParser {
 
 
         if (ProtocolConfig.class.equals(beanClass)) {
-            // <mini:service interface="com.alibaba.dubbo.demo.DemoService" protocol="dubbo" ref="demoService"/>
-            // <mini:protocol id="dubbo" name="dubbo" port="20880"/>
-
             for (String name : parserContext.getRegistry().getBeanDefinitionNames()) {
                 BeanDefinition definition = parserContext.getRegistry().getBeanDefinition(name);
                 PropertyValue property = definition.getPropertyValues().getPropertyValue("protocol");
@@ -114,6 +116,8 @@ public class MiniBeanDefinitionParser implements BeanDefinitionParser {
             }
 
         } else if (ProviderConfig.class.equals(beanClass)) {
+
+        }else if (ConsumerConfig.class.equals(beanClass)) {
 
         }
 

@@ -108,4 +108,23 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
 
         return invokers;
     }
+
+
+    @Override
+    public URL getUrl() {
+        return url;
+    }
+
+
+
+    public void setConsumerUrl(URL consumerUrl) {
+        this.consumerUrl = consumerUrl;
+    }
+
+
+
+    @Override
+    public void destroy() {
+        destroyed = true;
+    }
 }

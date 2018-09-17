@@ -8,11 +8,12 @@ import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.common.utils.StringUtils;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.Protocol;
+import com.cfs.mini.rpc.core.ProxyFactory;
 import com.cfs.mini.rpc.core.cluster.Cluster;
+import com.cfs.mini.rpc.core.cluster.directory.StaticDirectory;
 import com.cfs.mini.rpc.core.cluster.support.AvailableCluster;
 import com.cfs.mini.rpc.core.service.GenericService;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,14 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
     private static final Cluster cluster = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();
 
+
+    public String getInterfaceName() {
+        return interfaceName;
+    }
+
+    public void setInterfaceName(String interfaceName) {
+        this.interfaceName = interfaceName;
+    }
 
     /**接口名称*/
     private String interfaceName;
@@ -59,9 +68,34 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         this.url = url;
     }
 
+
+    public String getInterface() {
+        return interfaceName;
+    }
+
     /**方法集合*/
     private List<MethodConfig> methods;
 
+    private static final ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
+
+    public void setInterfaceClass(Class<?> interfaceClass) {
+        setInterface(interfaceClass);
+    }
+
+    public void setInterface(Class<?> interfaceClass) {
+        if (interfaceClass != null && !interfaceClass.isInterface()) {
+            throw new IllegalStateException("The interface class " + interfaceClass + " is not a interface!");
+        }
+        this.interfaceClass = interfaceClass;
+        setInterface(interfaceClass == null ? null : interfaceClass.getName());
+    }
+
+    public void setInterface(String interfaceName) {
+        this.interfaceName = interfaceName;
+        if (id == null || id.length() == 0) {
+            id = interfaceName;
+        }
+    }
 
     public synchronized T get() {
         // 已销毁，不可获得
@@ -221,9 +255,6 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 }
             }
         }
-
-
-
         //TODO:检查invoker是否可以用
 
         // 创建 Service 代理对象
