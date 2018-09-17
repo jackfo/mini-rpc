@@ -6,17 +6,18 @@ import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ConfigUtils;
 import com.cfs.mini.common.utils.NamedThreadFactory;
+import com.cfs.mini.common.utils.StringUtils;
 import com.cfs.mini.registry.NotifyListener;
 import com.cfs.mini.registry.Registry;
 import com.cfs.mini.registry.RegistryFactory;
+import com.cfs.mini.registry.RegistryService;
 import com.cfs.mini.registry.support.ProviderConsumerRegTable;
-import com.cfs.mini.rpc.core.Exporter;
-import com.cfs.mini.rpc.core.Invoker;
-import com.cfs.mini.rpc.core.Protocol;
-import com.cfs.mini.rpc.core.RpcException;
+import com.cfs.mini.rpc.core.*;
+import com.cfs.mini.rpc.core.cluster.Cluster;
 import com.cfs.mini.rpc.core.cluster.Configurator;
 import com.cfs.mini.rpc.core.protocol.InvokerWrapper;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +32,15 @@ public class RegistryProtocol implements Protocol {
 
 
     private final static Logger logger = LoggerFactory.getLogger(RegistryProtocol.class);
+
+    private ProxyFactory proxyFactory;
+
+    private Cluster cluster;
+
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
 
     /**
      * 当前属性通过injectExtension方法,在SPI加载的时候进行注入
@@ -62,6 +72,10 @@ public class RegistryProtocol implements Protocol {
     @Override
     public int getDefaultPort() {
         return 9090;
+    }
+
+    public void setProxyFactory(ProxyFactory proxyFactory) {
+        this.proxyFactory = proxyFactory;
     }
 
     @Override
@@ -147,9 +161,51 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
-        return null;
+        // 获得真实的注册中心的 URL
+        url = url.setProtocol(url.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_REGISTRY)).removeParameter(Constants.REGISTRY_KEY);
+
+        Registry registry = registryFactory.getRegistry(url);
+
+        if (RegistryService.class.equals(type)) {
+            return proxyFactory.getInvoker((T) registry, type, url);
+        }
+
+        Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(Constants.REFER_KEY));
+        String group = qs.get(Constants.GROUP_KEY);
+
+        if (group != null && group.length() > 0) {
+           throw new RuntimeException("分组聚合暂时未实现");
+        }
+        // 执行服务引用
+        return doRefer(cluster, registry, type, url);
     }
 
+    /**
+     * 根据URL获取相应的Invoker
+     * */
+    private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        // 创建 RegistryDirectory 对象，并设置注册中心
+        RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
+//        directory.setRegistry(registry);
+//        directory.setProtocol(protocol);
+        // 创建订阅 URL
+        // all attributes of REFER_KEY
+        Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters()); // 服务引用配置集合
+        URL subscribeUrl = new URL(Constants.CONSUMER_PROTOCOL, parameters.remove(Constants.REGISTER_IP_KEY), 0, type.getName(), parameters);
+        // 向注册中心注册自己（服务消费者）
+        if (!Constants.ANY_VALUE.equals(url.getServiceInterface())
+                && url.getParameter(Constants.REGISTER_KEY, true)) {
+            registry.register(subscribeUrl.addParameters(Constants.CATEGORY_KEY, Constants.CONSUMERS_CATEGORY,
+                    Constants.CHECK_KEY, String.valueOf(false))); // 不检查的原因是，不需要检查。
+        }
+
+
+        // 创建 Invoker 对象
+        Invoker invoker = cluster.join(directory);
+
+        return invoker;
+
+    }
     @Override
     public void destroy() {
 
