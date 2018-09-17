@@ -2,8 +2,11 @@ package com.cfs.mini.rpc.core.cluster.support;
 
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
+import com.cfs.mini.common.Version;
+import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
+import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.rpc.core.Invocation;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.Result;
@@ -231,13 +234,45 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
      * */
     @Override
     public Result invoke(final Invocation invocation) throws RpcException {
+        // 获得所有服务提供者 Invoker 集合
+        List<Invoker<T>> invokers = list(invocation);
 
+        LoadBalance loadBalance ;
+        if(invokers!=null&&!invokers.isEmpty()){
+            loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl().getMethodParameter(invocation.getMethodName(),Constants.LOADBALANCE_KEY,Constants.DEFAULT_LOADBALANCE));
+        }else{
+            loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(Constants.DEFAULT_LOADBALANCE);
+        }
+        //todo：设置异步执行
+
+        return doInvoke(invocation,invokers,loadBalance);
     }
 
     protected abstract Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException;
 
     protected List<Invoker<T>> list(Invocation invocation) throws RpcException {
         return directory.list(invocation);
+    }
+
+
+    protected void checkInvokers(List<Invoker<T>> invokers, Invocation invocation) {
+        if (invokers == null || invokers.isEmpty()) {
+            throw new RpcException("Failed to invoke the method "
+                    + invocation.getMethodName() + " in the service " + getInterface().getName()
+                    + ". No provider available for the service " + directory.getUrl().getServiceKey()
+                    + " from registry " + directory.getUrl().getAddress()
+                    + " on the consumer " + NetUtils.getLocalHost()
+                    + " using the dubbo version " + Version.getVersion()
+                    + ". Please check if the providers have been started and registered.");
+        }
+    }
+
+    protected void checkWhetherDestroyed() {
+        if (destroyed.get()) {
+            throw new RpcException("Rpc cluster invoker for " + getInterface() + " on consumer " + NetUtils.getLocalHost()
+                    + " use dubbo version " + Version.getVersion()
+                    + " is now destroyed! Can not invoke any more.");
+        }
     }
 
 }
