@@ -31,6 +31,7 @@ public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
 
+
     /**
      * 解析应用配置
      *
@@ -118,7 +119,6 @@ public  abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 if(address==null||address.length()==0){
                     address = Constants.ANYHOST_VALUE;
                 }
-
                 /**如果系统参数存在,优先使用系统参数*/
                 String sysaddress = System.getProperty("mini.registry.address");
                 if (sysaddress != null && sysaddress.length() > 0) {

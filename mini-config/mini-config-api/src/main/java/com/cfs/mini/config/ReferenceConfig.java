@@ -264,6 +264,15 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     }
 
 
+    public ConsumerConfig getConsumer() {
+        return consumer;
+    }
+
+    public void setConsumer(ConsumerConfig consumer) {
+        this.consumer = consumer;
+    }
+
+
 
 
 }
