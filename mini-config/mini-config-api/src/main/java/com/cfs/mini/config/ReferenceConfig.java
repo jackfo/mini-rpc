@@ -9,6 +9,7 @@ import com.cfs.mini.common.utils.StringUtils;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.Protocol;
 import com.cfs.mini.rpc.core.cluster.Cluster;
+import com.cfs.mini.rpc.core.cluster.support.AvailableCluster;
 import com.cfs.mini.rpc.core.service.GenericService;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
 
@@ -121,6 +122,9 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     }
 
 
+    /**
+     * 创建相应的代理对象
+     * */
     private T createProxy(Map<String, String> map) {
 
         //创建相应的URL
