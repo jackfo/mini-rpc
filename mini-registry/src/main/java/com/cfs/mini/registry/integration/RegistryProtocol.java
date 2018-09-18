@@ -15,6 +15,7 @@ import com.cfs.mini.registry.support.ProviderConsumerRegTable;
 import com.cfs.mini.rpc.core.*;
 import com.cfs.mini.rpc.core.cluster.Cluster;
 import com.cfs.mini.rpc.core.cluster.Configurator;
+import com.cfs.mini.rpc.core.cluster.support.FailoverCluster;
 import com.cfs.mini.rpc.core.protocol.InvokerWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import static com.cfs.mini.common.Constants.QOS_PORT;
 
 public class RegistryProtocol implements Protocol {
 
+    public static final String module = RegistryProtocol.class.getName();
 
     private final static Logger logger = LoggerFactory.getLogger(RegistryProtocol.class);
 

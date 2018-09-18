@@ -16,9 +16,9 @@ import com.cfs.mini.common.extension.SPI;
 public interface Protocol {
 
     /**
-     * Get default port when user doesn't config the port.
+     * 当配置文件中不存在端口的时候,获取默认端口
      *
-     * @return default port
+     * @return 默认端口
      */
     int getDefaultPort();
 

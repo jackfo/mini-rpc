@@ -3,7 +3,9 @@ package com.cfs.mini.config;
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
 import com.cfs.mini.common.Version;
+import com.cfs.mini.common.bytecode.Wrapper;
 import com.cfs.mini.common.extension.ExtensionLoader;
+import com.cfs.mini.common.utils.ConfigUtils;
 import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.common.utils.StringUtils;
 import com.cfs.mini.rpc.core.Invoker;
@@ -14,10 +16,13 @@ import com.cfs.mini.rpc.core.cluster.directory.StaticDirectory;
 import com.cfs.mini.rpc.core.cluster.support.AvailableCluster;
 import com.cfs.mini.rpc.core.service.GenericService;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.*;
+
+import static com.cfs.mini.common.utils.NetUtils.isInvalidLocalHost;
 
 public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
@@ -32,6 +37,16 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     /**检验是否已经初始化1*/
     private transient volatile boolean initialized;
 
+
+    protected String version;
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     private static final Cluster cluster = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();
 
@@ -127,7 +142,10 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
         appendProperties(this);
 
-        //TODO:设置generic属性
+        // 若未设置 `generic` 属性，使用 `ConsumerConfig.generic` 属性。
+        if (getGeneric() == null && getConsumer() != null) {
+            setGeneric(getConsumer().getGeneric());
+        }
 
         if (ProtocolUtils.isGeneric(getGeneric())) {
             interfaceClass = GenericService.class;
@@ -141,8 +159,111 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             // 校验接口和方法
             checkInterfaceAndMethods(interfaceClass, methods);
         }
+        String resolve = System.getProperty(interfaceName);
+        String resolveFile = null;
+
+        if (resolve == null || resolve.length() == 0) {
+            // 默认先加载，`${user.home}/dubbo-resolve.properties` 文件 ，无需配置
+            resolveFile = System.getProperty("mini.resolve.file");
+            if (resolveFile == null || resolveFile.length() == 0) {
+                File userResolveFile = new File(new File(System.getProperty("user.home")), "dubbo-resolve.properties");
+                if (userResolveFile.exists()) {
+                    resolveFile = userResolveFile.getAbsolutePath();
+                }
+            }
+            // 存在 resolveFile ，则进行文件读取加载。
+            if (resolveFile != null && resolveFile.length() > 0) {
+                Properties properties = new Properties();
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(new File(resolveFile));
+                    properties.load(fis);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Unload " + resolveFile + ", cause: " + e.getMessage(), e);
+                } finally {
+                    try {
+                        if (null != fis) fis.close();
+                    } catch (IOException e) {
+                        logger.warn(e.getMessage(), e);
+                    }
+                }
+                resolve = properties.getProperty(interfaceName);
+            }
+        }
+
+        // 设置直连提供者的 url
+        if (resolve != null && resolve.length() > 0) {
+            url = resolve;
+            if (logger.isWarnEnabled()) {
+                if (resolveFile != null && resolveFile.length() > 0) {
+                    logger.warn("Using default mini resolve file " + resolveFile + " replace " + interfaceName + "" + resolve + " to p2p invoke remote service.");
+                } else {
+                    logger.warn("Using -D" + interfaceName + "=" + resolve + " to p2p invoke remote service.");
+                }
+            }
+        }
+
+        //TODO: 从 ConsumerConfig 对象中，读取 application、module、registries、monitor 配置对象。
+
+        if (application != null) {
+            if (registries == null) {
+                registries = application.getRegistries();
+            }
+
+        }
+
 
         Map<String, String> map = new HashMap<String, String>();
+        Map<Object, Object> attributes = new HashMap<Object, Object>();
+        map.put(Constants.SIDE_KEY, Constants.CONSUMER_SIDE);
+        map.put(Constants.MINI_VERSION_KEY, Version.getVersion());
+        map.put(Constants.TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
+        if (ConfigUtils.getPid() > 0) {
+            map.put(Constants.PID_KEY, String.valueOf(ConfigUtils.getPid()));
+        }
+        if (!isGeneric()) {
+            String revision = Version.getVersion(interfaceClass, version);
+            if (revision != null && revision.length() > 0) {
+                map.put("revision", revision);
+            }
+
+            String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames(); // 获得方法数组
+            if (methods.length == 0) {
+                logger.warn("NO method found in service interface " + interfaceClass.getName());
+                map.put("methods", Constants.ANY_VALUE);
+            } else {
+                map.put("methods", StringUtils.join(new HashSet<String>(Arrays.asList(methods)), ","));
+            }
+        }
+
+        map.put(Constants.INTERFACE_KEY, interfaceName);
+        // 将各种配置对象，添加到 `map` 集合中。
+        appendParameters(map, application);
+        appendParameters(map, consumer, Constants.DEFAULT_KEY);
+        appendParameters(map, this);
+        String prefix = StringUtils.getServiceKey(map);
+        if (methods != null && !methods.isEmpty()) {
+            for (MethodConfig method : methods) {
+                // 将 MethodConfig 对象，添加到 `map` 集合中。
+                appendParameters(map, method, method.getName());
+                // 当 配置了 `MethodConfig.retry = false` 时，强制禁用重试
+                String retryKey = method.getName() + ".retry";
+                if (map.containsKey(retryKey)) {
+                    String retryValue = map.remove(retryKey);
+                    if ("false".equals(retryValue)) {
+                        map.put(method.getName() + ".retries", "0");
+                    }
+                }
+            }
+        }
+
+        String hostToRegistry = ConfigUtils.getSystemProperty(Constants.MINI_IP_TO_REGISTRY);
+        if (hostToRegistry == null || hostToRegistry.length() == 0) {
+            hostToRegistry = NetUtils.getLocalHost();
+        } else if (isInvalidLocalHost(hostToRegistry)) {
+            throw new IllegalArgumentException("Specified invalid registry ip from property:" + Constants.MINI_IP_TO_REGISTRY + ", value:" + hostToRegistry);
+        }
+        map.put(Constants.REGISTER_IP_KEY, hostToRegistry);
 
         ref = createProxy(map);
 

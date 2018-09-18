@@ -9,10 +9,13 @@ import com.cfs.mini.rpc.core.service.EchoService;
 
 public abstract class AbstractProxyFactory implements ProxyFactory {
 
+    /**
+     * 获取代理的invoker对象
+     * */
     public <T> T getProxy(Invoker<T> invoker) throws RpcException {
         Class<?>[] interfaces = null;
 
-
+        /**通过invoker获取相应的interface*/
         String config = invoker.getUrl().getParameter("interfaces");
 
         if (config != null && config.length() > 0) {
