@@ -7,6 +7,7 @@ import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.NetUtils;
+import com.cfs.mini.common.utils.StringUtils;
 import com.cfs.mini.registry.NotifyListener;
 import com.cfs.mini.registry.Registry;
 import com.cfs.mini.rpc.core.Invocation;
@@ -34,6 +35,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     /**调用的服务类*/
     private final Class<T> serviceType;
 
+    /**url与服务提供者的映射关系*/
+    private volatile Map<String, Invoker<T>> urlInvokerMap;
+
     /**注册中心的服务类*/
     private final String serviceKey;
 
@@ -49,6 +53,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * 注册中心
      */
     private Registry registry;
+
+    /**服务提供者的缓存集合*/
+    private volatile Set<URL> cachedInvokerUrls;
+
+    private final Map<String, String> queryMap;
 
 
     public void setProtocol(Protocol protocol) {
@@ -78,6 +87,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         //设置服务类型 即接口名
         this.serviceType = serviceType;
         this.serviceKey = url.getServiceKey();
+
+        this.queryMap = StringUtils.parseQueryString(url.getParameterAndDecoded(Constants.REFER_KEY));
 
     }
 
@@ -126,8 +137,61 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             this.methodInvokerMap = null; // Set the method invoker map to null
             // 销毁所有 Invoker 集合
             destroyAllInvokers();
+        }else{
+            //设置允许访问
+            this.forbidden = false;
+
+            // 引用老的 urlInvokerMap
+            Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
+            // 传入的 invokerUrls 为空，说明是路由规则或配置规则发生改变，此时 invokerUrls 是空的，直接使用 cachedInvokerUrls 。
+            if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
+                invokerUrls.addAll(this.cachedInvokerUrls);
+                // 传入的 invokerUrls 非空，更新 cachedInvokerUrls 。
+            } else {
+                this.cachedInvokerUrls = new HashSet<URL>();
+                this.cachedInvokerUrls.addAll(invokerUrls); //Cached invoker urls, convenient for comparison //缓存invokerUrls列表，便于交叉对比
+            }
+
+            if (invokerUrls.isEmpty()) {
+                return;
+            }
+
+            //将传入的invokerUrls转化为新的invoker
+
+
         }
     }
+
+    private Map<String, Invoker<T>> toInvokers(List<URL> urls) {
+        // 新的 `newUrlInvokerMap`
+        Map<String, Invoker<T>> newUrlInvokerMap = new HashMap<String, Invoker<T>>();
+        // 若为空，直接返回
+        if (urls == null || urls.isEmpty()) {
+            return newUrlInvokerMap;
+        }
+
+        // 已初始化的服务器提供 URL 集合
+        Set<String> keys = new HashSet<String>();
+        // 获得引用服务的协议
+        String queryProtocols = this.queryMap.get(Constants.PROTOCOL_KEY);
+
+
+
+
+    }
+
+    public void destroyAllInvokers(){
+        Map<String,Invoker<T>> localUrlInvokerMap = this.urlInvokerMap;
+        if(localUrlInvokerMap!=null){
+            for(Invoker invoker:new ArrayList<>(localUrlInvokerMap.values())){
+                invoker.destroy();
+            }
+            localUrlInvokerMap.clear();
+        }
+        /**将方法与Invoker之间的映射置为空*/
+        methodInvokerMap = null;
+    }
+
     /**
      * 将overrideURL 转换为 map，供重新 refer 时使用.
      * 每次下发全部规则，全部重新组装计算
