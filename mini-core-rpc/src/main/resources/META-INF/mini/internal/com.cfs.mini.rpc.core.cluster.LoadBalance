@@ -1,0 +1,1 @@
+random=com.cfs.mini.rpc.core.cluster.loadbalance.RandomLoadBalance

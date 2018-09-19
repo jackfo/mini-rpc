@@ -3,8 +3,11 @@ package com.cfs.mini.remoting.zookeeper.zkclient;
 import com.cfs.mini.common.concurrent.ListenableFutureTask;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
+import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.ZkClient;
+import org.springframework.util.Assert;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +55,14 @@ public class ZkClientWrapper {
         } else {
             logger.warn("Zkclient has already been started!");
         }
+    }
+
+
+    public List<String> subscribeChildChanges(String path, final IZkChildListener listener) {
+        if(client==null){
+            throw new RuntimeException("client is null");
+        }
+        return client.subscribeChildChanges(path, listener);
     }
 
 }

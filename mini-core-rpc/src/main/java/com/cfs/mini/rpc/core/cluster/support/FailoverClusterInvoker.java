@@ -34,6 +34,7 @@ public class FailoverClusterInvoker<T> extends  AbstractClusterInvoker<T> implem
 
         List<Invoker<T>> copyinvokers = invokers;
 
+        //检验是否存在相应的Invoker
         checkInvokers(copyinvokers,invocation);
 
         int len = getUrl().getMethodParameter(invocation.getMethodName(),Constants.RETRIES_KEY,Constants.DEFAULT_RETRIES);

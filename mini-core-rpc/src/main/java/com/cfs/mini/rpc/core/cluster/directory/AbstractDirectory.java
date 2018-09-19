@@ -84,6 +84,9 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
 
     protected abstract List<Invoker<T>> doList(Invocation invocation) throws RpcException;
 
+    /**
+     * 根据invocation找到所有的invoker
+     * */
     @Override
     public List<Invoker<T>> list(Invocation invocation) throws RpcException {
         if(destroyed){
@@ -105,7 +108,6 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
                 }
             }
         }
-
         return invokers;
     }
 

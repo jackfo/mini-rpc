@@ -39,6 +39,10 @@ public class RegistryProtocol implements Protocol {
 
     private Cluster cluster;
 
+    public Protocol getProtocol() {
+        return protocol;
+    }
+
     public void setCluster(Cluster cluster) {
         this.cluster = cluster;
     }
@@ -188,8 +192,8 @@ public class RegistryProtocol implements Protocol {
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
         // 创建 RegistryDirectory 对象，并设置注册中心
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
-//        directory.setRegistry(registry);
-//        directory.setProtocol(protocol);
+        directory.setRegistry(registry);
+        directory.setProtocol(protocol);
         // 创建订阅 URL
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters()); // 服务引用配置集合
@@ -201,6 +205,12 @@ public class RegistryProtocol implements Protocol {
                     Constants.CHECK_KEY, String.valueOf(false))); // 不检查的原因是，不需要检查。
         }
 
+
+        // 向注册中心订阅服务提供者 + 路由规则 + 配置规则
+        directory.subscribe(subscribeUrl.addParameter(Constants.CATEGORY_KEY,
+                Constants.PROVIDERS_CATEGORY
+                        + "," + Constants.CONFIGURATORS_CATEGORY
+                        + "," + Constants.ROUTERS_CATEGORY));
 
         // 创建 Invoker 对象
         Invoker invoker = cluster.join(directory);

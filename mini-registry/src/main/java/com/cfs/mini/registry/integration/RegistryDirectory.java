@@ -7,8 +7,10 @@ import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.registry.NotifyListener;
+import com.cfs.mini.registry.Registry;
 import com.cfs.mini.rpc.core.Invocation;
 import com.cfs.mini.rpc.core.Invoker;
+import com.cfs.mini.rpc.core.Protocol;
 import com.cfs.mini.rpc.core.RpcException;
 import com.cfs.mini.rpc.core.cluster.Router;
 import com.cfs.mini.rpc.core.cluster.directory.AbstractDirectory;
@@ -29,9 +31,35 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     private volatile boolean forbidden = false;
 
+    /**调用的服务类*/
+    private final Class<T> serviceType;
 
-    public RegistryDirectory(URL url) {
-        super(url);
+    /**注册中心的服务类*/
+    private final String serviceKey;
+
+    /**
+     * 注册中心的 Protocol 对象
+     */
+    private Protocol protocol; // Initialization at the time of injection, the assertion is not null
+    /**
+     * 注册中心
+     */
+    private Registry registry;
+
+
+    public void setProtocol(Protocol protocol) {
+        this.protocol = protocol;
+    }
+
+    public void setRegistry(Registry registry) {
+        this.registry = registry;
+    }
+
+    public void subscribe(URL url) {
+        // 设置消费者 URL
+        setConsumerUrl(url);
+        // 向注册中心，发起订阅
+        registry.subscribe(url, this);
     }
 
 
@@ -43,6 +71,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (url.getServiceKey() == null || url.getServiceKey().length() == 0) {
             throw new IllegalArgumentException("registry serviceKey is null.");
         }
+        //设置服务类型 即接口名
+        this.serviceType = serviceType;
+        this.serviceKey = url.getServiceKey();
+
     }
 
 
@@ -94,7 +126,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public Class<T> getInterface() {
-        return null;
+        return serviceType;
     }
 
     @Override
