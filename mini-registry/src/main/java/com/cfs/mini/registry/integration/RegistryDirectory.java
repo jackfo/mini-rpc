@@ -3,6 +3,7 @@ package com.cfs.mini.registry.integration;
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
 import com.cfs.mini.common.Version;
+import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.NetUtils;
@@ -12,14 +13,13 @@ import com.cfs.mini.rpc.core.Invocation;
 import com.cfs.mini.rpc.core.Invoker;
 import com.cfs.mini.rpc.core.Protocol;
 import com.cfs.mini.rpc.core.RpcException;
+import com.cfs.mini.rpc.core.cluster.Configurator;
+import com.cfs.mini.rpc.core.cluster.ConfiguratorFactory;
 import com.cfs.mini.rpc.core.cluster.Router;
 import com.cfs.mini.rpc.core.cluster.directory.AbstractDirectory;
 import com.cfs.mini.rpc.core.support.RpcUtils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 
@@ -36,6 +36,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**注册中心的服务类*/
     private final String serviceKey;
+
+    private volatile List<Configurator> configurators;
+
+    private static final ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();
 
     /**
      * 注册中心的 Protocol 对象
@@ -80,8 +84,89 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public void notify(List<URL> urls) {
+        /**服务提供者*/
+        List<URL> invokerUrls = new ArrayList<URL>();
+        /**服务路由*/
+        List<URL> routerUrls = new ArrayList<URL>();
+        /**服务配置*/
+        List<URL> configuratorUrls = new ArrayList<URL>();
+        for (URL url : urls) {
+            String protocol = url.getProtocol();
+            String category = url.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
+            if (Constants.ROUTERS_CATEGORY.equals(category) || Constants.ROUTE_PROTOCOL.equals(protocol)) {
+                routerUrls.add(url);
+            } else if (Constants.CONFIGURATORS_CATEGORY.equals(category) || Constants.OVERRIDE_PROTOCOL.equals(protocol)) {
+                configuratorUrls.add(url);
+            } else if (Constants.PROVIDERS_CATEGORY.equals(category)) {
+                invokerUrls.add(url);
+            } else {
+                logger.warn("Unsupported category " + category + " in notified url: " + url + " from registry " + getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost());
+            }
+        }
 
-        throw new RuntimeException("notify异常");
+        if (!configuratorUrls.isEmpty()) {
+            this.configurators = toConfigurators(configuratorUrls);
+        }
+
+
+        //TODO:处理路由规则URL集合
+
+        /**处理服务提供者集合*/
+        refreshInvoker(invokerUrls);
+    }
+
+
+    private void refreshInvoker(List<URL> invokerUrls) {
+        //如果只存在一个空协议则禁止访问
+        if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null
+                && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
+            // 设置禁止访问
+            this.forbidden = true; // Forbid to access
+            // methodInvokerMap 置空
+            this.methodInvokerMap = null; // Set the method invoker map to null
+            // 销毁所有 Invoker 集合
+            destroyAllInvokers();
+        }
+    }
+    /**
+     * 将overrideURL 转换为 map，供重新 refer 时使用.
+     * 每次下发全部规则，全部重新组装计算
+     *
+     * @param urls 契约：
+     *             </br>1.override://0.0.0.0/...(或override://ip:port...?anyhost=true)&para1=value1...表示全局规则(对所有的提供者全部生效)
+     *             </br>2.override://ip:port...?anyhost=false 特例规则（只针对某个提供者生效）
+     *             </br>3.不支持override://规则... 需要注册中心自行计算.
+     *             </br>4.不带参数的override://0.0.0.0/ 表示清除override
+     *
+     * @return Configurator 集合
+     */
+    public static List<Configurator> toConfigurators(List<URL> urls) {
+        // 忽略，若配置规则 URL 集合为空
+        if (urls == null || urls.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 创建 Configurator 集合
+        List<Configurator> configurators = new ArrayList<Configurator>(urls.size());
+
+        for(URL url:urls){
+            // 若协议为 `empty://` ，意味着清空所有配置规则，因此返回空 Configurator 集合
+            if (Constants.EMPTY_PROTOCOL.equals(url.getProtocol())) {
+                configurators.clear();
+                break;
+            }
+
+            Map<String, String> override = new HashMap<String, String>(url.getParameters());
+            override.remove(Constants.ANYHOST_KEY);
+            if (override.size() == 0) {
+                configurators.clear();
+                continue;
+            }
+            configurators.add(configuratorFactory.getConfigurator(url));
+        }
+        // 排序
+        Collections.sort(configurators);
+        return configurators;
     }
 
     @Override
