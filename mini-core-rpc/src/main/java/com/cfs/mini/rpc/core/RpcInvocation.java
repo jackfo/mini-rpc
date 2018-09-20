@@ -105,4 +105,11 @@ public class RpcInvocation implements Invocation, Serializable {
     public Invoker<?> getInvoker() {
         return null;
     }
+
+    public void setAttachment(String key, String value) {
+        if (attachments == null) {
+            attachments = new HashMap<String, String>();
+        }
+        attachments.put(key, value);
+    }
 }

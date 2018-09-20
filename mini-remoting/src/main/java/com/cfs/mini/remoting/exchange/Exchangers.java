@@ -45,4 +45,15 @@ public class Exchangers {
     public static Exchanger getExchanger(String type){
         return ExtensionLoader.getExtensionLoader(Exchanger.class).getExtension(type);
     }
+
+    public static ExchangeClient connect(URL url, ExchangeHandler handler) throws RemotingException {
+        if (url == null) {
+            throw new IllegalArgumentException("url == null");
+        }
+        if (handler == null) {
+            throw new IllegalArgumentException("handler == null");
+        }
+        url = url.addParameterIfAbsent(Constants.CODEC_KEY, "exchange");
+        return getExchanger(url).connect(url, handler);
+    }
 }

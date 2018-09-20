@@ -116,6 +116,9 @@ public class RegistryProtocol implements Protocol {
         /**添加定义URL的监听器*/
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
+
+
+        /**注册完毕后会订阅Zookeeper上面的消息*/
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         return new DestroyableExporter<T>(exporter, originInvoker, overrideSubscribeUrl, registedProviderUrl);
@@ -416,7 +419,11 @@ public class RegistryProtocol implements Protocol {
 
         @Override
         public synchronized void notify(List<URL> urls) {
-            throw new RuntimeException("运行时异常");
+
+            String key = getCacheKey(originInvoker);
+            ExporterChangeableWrapper<?> exporter = bounds.get(key);
+
+            /**新老URL不匹配则进行重新暴露*/
         }
 
         private List<URL> getMatchedUrls(List<URL> configuratorUrls, URL currentSubscribe) {

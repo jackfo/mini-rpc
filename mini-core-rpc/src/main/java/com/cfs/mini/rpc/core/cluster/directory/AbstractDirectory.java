@@ -129,4 +129,8 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
     public void destroy() {
         destroyed = true;
     }
+
+    public List<Router> getRouters() {
+        return routers;
+    }
 }

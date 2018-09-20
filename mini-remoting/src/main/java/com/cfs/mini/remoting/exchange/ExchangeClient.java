@@ -1,4 +1,6 @@
 package com.cfs.mini.remoting.exchange;
 
-public interface ExchangeClient {
+import com.cfs.mini.remoting.Client;
+
+public interface ExchangeClient extends Client,ExchangeChannel{
 }
