@@ -201,6 +201,14 @@ public class ZookeeperRegistry extends FailbackRegistry {
         return urls;
     }
 
+    @Override
+    protected void doUnregister(URL url) {
+        try {
+            zkClient.delete(toUrlPath(url));
+        } catch (Throwable e) {
+            throw new RpcException("Failed to unregister " + url + " to zookeeper " + getUrl() + ", cause: " + e.getMessage(), e);
+        }
+    }
 
 
 }

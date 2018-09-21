@@ -5,6 +5,7 @@ import com.cfs.mini.common.URL;
 import com.cfs.mini.remoting.exchange.suport.AbstractZookeeperClient;
 import com.cfs.mini.remoting.zookeeper.ChildListener;
 import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 
 import java.util.List;
 
@@ -49,5 +50,13 @@ public class ZkclientZookeeperClient extends AbstractZookeeperClient<IZkChildLis
     @Override
     protected List<String> addTargetChildListener(String path, IZkChildListener iZkChildListener) {
         return client.subscribeChildChanges(path, iZkChildListener);
+    }
+
+
+    public void delete(String path) {
+        try {
+            client.delete(path);
+        } catch (ZkNoNodeException e) {
+        }
     }
 }

@@ -13,6 +13,7 @@ import com.cfs.mini.rpc.core.RpcException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class AbstractRegistry implements Registry{
@@ -28,6 +29,11 @@ public class AbstractRegistry implements Registry{
     /**定义指定URL的监听器集合*/
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
 
+    /**
+     * 是否销毁
+     */
+    private AtomicBoolean destroyed = new AtomicBoolean(false);
+
     public AbstractRegistry(URL url) {
     }
 
@@ -41,9 +47,83 @@ public class AbstractRegistry implements Registry{
         return false;
     }
 
+    public Set<URL> getRegistered() {
+        return registered;
+    }
+
+    public Map<URL, Set<NotifyListener>> getSubscribed() {
+        return subscribed;
+    }
+
+
+    /**
+     * 销毁相应的注册中心
+     * */
     @Override
     public void destroy() {
+        // 已销毁，跳过
+        if (!destroyed.compareAndSet(false, true)) {
+            return;
+        }
 
+        /**获取所有已经注册的URL*/
+        Set<URL> destroyRegistered = new HashSet<URL>(getRegistered());
+
+        /**
+         * 如果不是空,则需要取消注册
+         * */
+        if (!destroyRegistered.isEmpty()) {
+            for (URL url : new HashSet<URL>(getRegistered())) {
+                if (url.getParameter(Constants.DYNAMIC_KEY, true)) {
+                    try {
+                        unregister(url); // 取消注册
+                        if (logger.isInfoEnabled()) {
+                            logger.info("Destroy unregister url " + url);
+                        }
+                    } catch (Throwable t) {
+                        logger.warn("Failed to unregister url " + url + " to registry " + getUrl() + " on destroy, cause: " + t.getMessage(), t);
+                    }
+                }
+            }
+        }
+
+        // 取消订阅
+        Map<URL, Set<NotifyListener>> destroySubscribed = new HashMap<URL, Set<NotifyListener>>(getSubscribed());
+        if (!destroySubscribed.isEmpty()) {
+            for (Map.Entry<URL, Set<NotifyListener>> entry : destroySubscribed.entrySet()) {
+                URL url = entry.getKey();
+                for (NotifyListener listener : entry.getValue()) {
+                    try {
+                        unsubscribe(url, listener); // 取消订阅
+                        if (logger.isInfoEnabled()) {
+                            logger.info("Destroy unsubscribe url " + url);
+                        }
+                    } catch (Throwable t) {
+                        logger.warn("Failed to unsubscribe url " + url + " to registry " + getUrl() + " on destroy, cause: " + t.getMessage(), t);
+                    }
+                }
+            }
+        }
+
+    }
+
+
+    @Override
+    public void unsubscribe(URL url, NotifyListener listener) {
+        if (url == null) {
+            throw new IllegalArgumentException("unsubscribe url == null");
+        }
+        if (listener == null) {
+            throw new IllegalArgumentException("unsubscribe listener == null");
+        }
+        if (logger.isInfoEnabled()) {
+            logger.info("Unsubscribe: " + url);
+        }
+        // 移除出 subscribed 集合
+        Set<NotifyListener> listeners = subscribed.get(url);
+        if (listeners != null) {
+            listeners.remove(listener);
+        }
     }
 
     @Override
@@ -58,9 +138,18 @@ public class AbstractRegistry implements Registry{
         registered.add(url);
     }
 
+    /**
+     * 取消注册具体的应用
+     * */
     @Override
     public void unregister(URL url) {
-
+        if (url == null) {
+            throw new IllegalArgumentException("unregister url == null");
+        }
+        if (logger.isInfoEnabled()) {
+            logger.info("Unregister: " + url);
+        }
+        registered.remove(url);
     }
 
     @Override

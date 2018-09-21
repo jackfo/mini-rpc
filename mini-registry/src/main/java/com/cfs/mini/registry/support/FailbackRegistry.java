@@ -131,4 +131,27 @@ public abstract class FailbackRegistry extends AbstractRegistry{
     protected void doNotify(URL url, NotifyListener listener, List<URL> urls) {
         super.notify(url, listener, urls);
     }
+
+
+    @Override
+    public void unregister(URL url) {
+        // 已销毁，跳过
+        if (destroyed.get()){
+            return;
+        }
+        // 移除出 `registered` 变量
+        super.unregister(url);
+
+        // 向注册中心发送取消注册请求
+        try {
+            // Sending a cancellation request to the server side
+            doUnregister(url);
+        } catch (Exception e) {
+            logger.error("取消注册失败"+e.getMessage());
+        }
+
+
+    }
+
+    protected abstract void doUnregister(URL url);
 }

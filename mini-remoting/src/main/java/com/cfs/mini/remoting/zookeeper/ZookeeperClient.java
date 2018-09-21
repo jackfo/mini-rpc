@@ -11,4 +11,9 @@ public interface ZookeeperClient {
     void create(String path, boolean ephemeral);
 
     List<String> addChildListener(String path, ChildListener listener);
+
+    /**
+     * 删除节点
+     * */
+    void delete(String path);
 }

@@ -65,4 +65,9 @@ public class ZkClientWrapper {
         return client.subscribeChildChanges(path, listener);
     }
 
+
+    public void delete(String path) {
+        client.delete(path);
+    }
+
 }

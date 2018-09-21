@@ -101,4 +101,14 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
         }
     }
 
+    @Override
+    public void delete(String path) {
+        try {
+            client.delete().forPath(path);
+        } catch (KeeperException.NoNodeException e) {
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
+    }
+
 }

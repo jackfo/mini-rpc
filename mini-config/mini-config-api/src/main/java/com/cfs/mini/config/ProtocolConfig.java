@@ -1,8 +1,14 @@
 package com.cfs.mini.config;
 
 import com.cfs.mini.config.support.Parameter;
+import com.cfs.mini.registry.support.AbstractRegistryFactory;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ProtocolConfig extends AbstractConfig{
+
+    /**是否已经销毁*/
+    private static final AtomicBoolean destroyed = new AtomicBoolean(false);
 
 
     private String name;
@@ -64,5 +70,20 @@ public class ProtocolConfig extends AbstractConfig{
 
     public void setPort(Integer port) {
         this.port = port;
+    }
+
+    /**
+     * 销毁所有方法
+     * */
+    public static void destroyAll() {
+
+        if (!destroyed.compareAndSet(false, true)) {
+            return;
+        }
+
+        /**销毁相关注册中心*/
+        AbstractRegistryFactory.destroyAll();
+
+
     }
 }

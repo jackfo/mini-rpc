@@ -8,6 +8,8 @@ import com.cfs.mini.registry.Registry;
 import com.cfs.mini.registry.RegistryFactory;
 import com.cfs.mini.registry.RegistryService;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -56,4 +58,28 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
     }
 
     protected abstract Registry createRegistry(URL url);
+
+    public static Collection<Registry> getRegistries() {
+        return Collections.unmodifiableCollection(REGISTRIES.values());
+    }
+
+    public static void destroyAll() {
+        LOCK.lock();
+        try {
+            // 销毁
+            for (Registry registry : getRegistries()) {
+                try {
+                    registry.destroy();
+                } catch (Throwable e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+            }
+            // 清空缓存
+            REGISTRIES.clear();
+        } finally {
+            // 释放锁
+            // Release the lock
+            LOCK.unlock();
+        }
+    }
 }
