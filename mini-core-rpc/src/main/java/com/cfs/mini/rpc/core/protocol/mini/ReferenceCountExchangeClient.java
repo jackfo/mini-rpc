@@ -6,6 +6,7 @@ import com.cfs.mini.remoting.ChannelHandler;
 import com.cfs.mini.remoting.RemotingException;
 import com.cfs.mini.remoting.exchange.ExchangeClient;
 import com.cfs.mini.remoting.exchange.ExchangeHandler;
+import com.cfs.mini.remoting.exchange.ResponseFuture;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentMap;
@@ -79,6 +80,16 @@ final class ReferenceCountExchangeClient implements ExchangeClient {
     @Override
     public ExchangeHandler getExchangeHandler() {
         return client.getExchangeHandler();
+    }
+
+    @Override
+    public ResponseFuture request(Object request, int timeout) throws RemotingException {
+        return null;
+    }
+
+    @Override
+    public ResponseFuture request(Object request) throws RemotingException {
+        return null;
     }
 
     @Override

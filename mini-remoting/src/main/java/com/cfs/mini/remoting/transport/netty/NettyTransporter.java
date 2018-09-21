@@ -14,7 +14,7 @@ public class NettyTransporter implements Transporter {
 
     public Client connect(URL url, ChannelHandler listener) throws RemotingException {
 
-        throw new RuntimeException("connect连接异常");
+        return new NettyClient(url, listener);
 
     }
 
