@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MiniProtocol extends AbstractProtocol {
 
-    public static final int DEFAULT_PORT = 20880;
+    public static final int DEFAULT_PORT = 9748;
 
     /**暴露的MAP映射*/
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<>();

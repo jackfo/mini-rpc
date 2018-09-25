@@ -802,4 +802,21 @@ public class ExtensionLoader<T> {
     }
 
 
+    /**返回已经加载的扩展点*/
+    public Set<String> getLoadedExtensions() {
+        return Collections.unmodifiableSet(new TreeSet<String>(cachedInstances.keySet()));
+    }
+
+
+    public T getLoadedExtension(String name) {
+        if (name == null || name.length() == 0)
+            throw new IllegalArgumentException("Extension name == null");
+        Holder<Object> holder = cachedInstances.get(name);
+        if (holder == null) {
+            cachedInstances.putIfAbsent(name, new Holder<Object>());
+            holder = cachedInstances.get(name);
+        }
+        return (T) holder.get();
+    }
+
 }

@@ -221,9 +221,20 @@ public class RegistryProtocol implements Protocol {
         return invoker;
 
     }
+
+    /**
+     * 注册协议进行销毁
+     * */
     @Override
     public void destroy() {
 
+        List<Exporter<?>> exporters = new ArrayList<Exporter<?>>(bounds.values());
+
+        for (Exporter<?> exporter : exporters) {
+            exporter.unexport();
+        }
+
+        bounds.clear();
     }
 
     private Registry getRegistry(final Invoker<?> originInvoker) {

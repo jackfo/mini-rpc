@@ -136,6 +136,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     }
 
 
+    /**
+     *
+     * */
     private void refreshInvoker(List<URL> invokerUrls) {
         //如果只存在一个空协议则禁止访问
         if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null

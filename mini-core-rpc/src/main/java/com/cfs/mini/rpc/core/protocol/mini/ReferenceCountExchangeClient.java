@@ -82,9 +82,13 @@ final class ReferenceCountExchangeClient implements ExchangeClient {
         return client.getExchangeHandler();
     }
 
+
+    /**
+     * 开始进行相应的远程调用
+     * */
     @Override
     public ResponseFuture request(Object request, int timeout) throws RemotingException {
-        return null;
+        return client.request(request);
     }
 
     @Override

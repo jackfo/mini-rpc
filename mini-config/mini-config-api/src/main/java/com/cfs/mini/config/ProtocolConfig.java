@@ -1,7 +1,9 @@
 package com.cfs.mini.config;
 
+import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.config.support.Parameter;
 import com.cfs.mini.registry.support.AbstractRegistryFactory;
+import com.cfs.mini.rpc.core.Protocol;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -83,6 +85,19 @@ public class ProtocolConfig extends AbstractConfig{
 
         /**销毁相关注册中心*/
         AbstractRegistryFactory.destroyAll();
+
+        /**销毁所有的协议*/
+        ExtensionLoader<Protocol> loader = ExtensionLoader.getExtensionLoader(Protocol.class);
+        for(String protocolName:loader.getLoadedExtensions()){
+            try {
+                Protocol protocol = loader.getLoadedExtension(protocolName);
+                if (protocol != null) {
+                    protocol.destroy();
+                }
+            } catch (Throwable t) {
+                logger.warn(t.getMessage(), t);
+            }
+        }
 
 
     }

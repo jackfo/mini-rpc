@@ -93,6 +93,9 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     /**添加一个监听器*/
                     List<String> children = zkClient.addChildListener(path, zkListener);
 
+                    /**
+                     * 这个是为了处理Provider为空的情况
+                     * */
                     if (children != null) {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
