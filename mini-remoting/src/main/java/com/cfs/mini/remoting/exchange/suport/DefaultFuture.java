@@ -106,6 +106,14 @@ public class DefaultFuture implements ResponseFuture {
         //TODO:回调机制
     }
 
+    public void cancel() {
+        Response errorResult = new Response(id);
+        errorResult.setErrorMessage("request future has been canceled.");
+        response = errorResult;
+        FUTURES.remove(id);
+        CHANNELS.remove(id);
+    }
+
     @Override
     public Object get() throws RemotingException {
         return get(timeout);

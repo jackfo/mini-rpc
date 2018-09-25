@@ -11,6 +11,7 @@ import com.cfs.mini.remoting.exchange.ExchangeChannel;
 import com.cfs.mini.remoting.exchange.ExchangeHandler;
 import com.cfs.mini.remoting.exchange.Request;
 import com.cfs.mini.remoting.exchange.ResponseFuture;
+import com.cfs.mini.remoting.exchange.suport.DefaultFuture;
 
 import java.net.InetSocketAddress;
 
