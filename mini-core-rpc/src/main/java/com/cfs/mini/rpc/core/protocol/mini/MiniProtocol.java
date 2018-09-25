@@ -3,15 +3,16 @@ package com.cfs.mini.rpc.core.protocol.mini;
 import com.cfs.mini.common.Constants;
 import com.cfs.mini.common.URL;
 import com.cfs.mini.common.extension.ExtensionLoader;
+import com.cfs.mini.common.logger.Logger;
+import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ConcurrentHashSet;
 import com.cfs.mini.common.utils.StringUtils;
+import com.cfs.mini.remoting.Channel;
 import com.cfs.mini.remoting.RemotingException;
 import com.cfs.mini.remoting.Transporter;
 import com.cfs.mini.remoting.exchange.*;
 import com.cfs.mini.remoting.exchange.suport.ExchangeHandlerAdapter;
-import com.cfs.mini.rpc.core.Exporter;
-import com.cfs.mini.rpc.core.Invoker;
-import com.cfs.mini.rpc.core.RpcException;
+import com.cfs.mini.rpc.core.*;
 import com.cfs.mini.rpc.core.protocol.AbstractProtocol;
 import com.cfs.mini.rpc.core.support.ProtocolUtils;
 
@@ -21,6 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MiniProtocol extends AbstractProtocol {
 
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
     public static final int DEFAULT_PORT = 9748;
 
     /**暴露的MAP映射*/
@@ -28,6 +31,10 @@ public class MiniProtocol extends AbstractProtocol {
 
     protected static String serviceKey(URL url) {
         return ProtocolUtils.serviceKey(url);
+    }
+
+    protected static String serviceKey(int port, String serviceName, String serviceVersion, String serviceGroup) {
+        return ProtocolUtils.serviceKey(port, serviceName, serviceVersion, serviceGroup);
     }
 
     /**通信服务器的集合*/
@@ -195,12 +202,90 @@ public class MiniProtocol extends AbstractProtocol {
 
     }
 
+    Invoker<?> getInvoker(Channel channel, Invocation inv) throws RemotingException {
+        boolean isCallBackServiceInvoke;
+        boolean isStubServiceInvoke;
+        int port = channel.getLocalAddress().getPort();
+        String path = inv.getAttachments().get(Constants.PATH_KEY);
+        isStubServiceInvoke = Boolean.TRUE.toString().equals(inv.getAttachments().get(Constants.STUB_EVENT_KEY));
+        if (isStubServiceInvoke) {
+            port = channel.getRemoteAddress().getPort();
+        }
+        // 获得服务建
+        String serviceKey = serviceKey(port, path, inv.getAttachments().get(Constants.VERSION_KEY), inv.getAttachments().get(Constants.GROUP_KEY));
+        // 获得 Exporter 对象
+        MiniExporter<?> exporter = (MiniExporter<?>) exporterMap.get(serviceKey);
+        // 获得 Invoker 对象
+        if (exporter == null) {
+            throw new RemotingException(channel, "Not found exported service: " + serviceKey + " in " + exporterMap.keySet() + ", may be version or group mismatch " + ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress() + ", message:" + inv);
+        }
+        return exporter.getInvoker();
+    }
+
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
         @Override
         public Object reply(ExchangeChannel channel, Object message) throws RemotingException {
+             if(message instanceof Invocation){
+                 Invocation inv = (Invocation) message;
+                 //获取其相应的调用者
+                 Invoker<?> invoker = getInvoker(channel, inv);
+                 // 设置调用方的地址
 
-            throw new RuntimeException("reply...");
+                 // 执行调用
+                 return invoker.invoke(inv);
+             }
+
+             throw new RpcException("调用reply,进行远程操控出现异常");
+        }
+
+        @Override
+        public void connected(Channel channel) {
+            this.invoke(channel, Constants.ON_CONNECT_KEY);
+        }
+
+        @Override
+        public void received(Channel channel, Object message) throws RemotingException {
+            if (message instanceof Invocation) {
+                this.reply((ExchangeChannel) channel, message);
+            } else {
+                super.received(channel, message);
+            }
+        }
+
+        private void invoke(Channel channel, String methodKey) {
+            // 创建 Invocation 对象
+            Invocation invocation = createInvocation(channel, channel.getUrl(), methodKey);
+            // 调用 received 方法，执行对应的方法
+            if (invocation != null) {
+                try {
+                    this.received(channel, invocation);
+                } catch (Throwable t) {
+                    logger.warn("Failed to invoke event method " + invocation.getMethodName() + "(), cause: " + t.getMessage(), t);
+                }
+            }
+        }
+
+
+        private Invocation createInvocation(Channel channel, URL url, String methodKey) {
+            String method = url.getParameter(methodKey);
+            if (method == null || method.length() == 0) {
+                return null;
+            }
+            RpcInvocation invocation = new RpcInvocation(method, new Class<?>[0], new Object[0]);
+            invocation.setAttachment(Constants.PATH_KEY, url.getPath());
+            invocation.setAttachment(Constants.GROUP_KEY, url.getParameter(Constants.GROUP_KEY));
+            invocation.setAttachment(Constants.INTERFACE_KEY, url.getParameter(Constants.INTERFACE_KEY));
+            invocation.setAttachment(Constants.VERSION_KEY, url.getParameter(Constants.VERSION_KEY));
+            if (url.getParameter(Constants.STUB_EVENT_KEY, false)) {
+                invocation.setAttachment(Constants.STUB_EVENT_KEY, Boolean.TRUE.toString());
+            }
+            return invocation;
         }
 
     };
+
+
+
+
+
 }

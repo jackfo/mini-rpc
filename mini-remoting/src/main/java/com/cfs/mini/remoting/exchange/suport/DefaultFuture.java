@@ -171,7 +171,7 @@ public class DefaultFuture implements ResponseFuture {
 
     @Override
     public boolean isDone() {
-        return false;
+        return response != null;
     }
 
     private long getStartTimestamp() {

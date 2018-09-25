@@ -20,6 +20,9 @@ import java.net.InetSocketAddress;
  * */
 public class HeaderExchangeChannel implements ExchangeChannel {
 
+    private static final String CHANNEL_KEY = HeaderExchangeChannel.class.getName() + ".CHANNEL";
+
+
     /**是否关闭*/
     private volatile boolean closed = false;
 
@@ -102,46 +105,72 @@ public class HeaderExchangeChannel implements ExchangeChannel {
 
     @Override
     public URL getUrl() {
-        return null;
+        return channel.getUrl();
     }
 
     @Override
     public ChannelHandler getChannelHandler() {
-        return null;
+        return channel.getChannelHandler();
     }
 
     @Override
     public InetSocketAddress getLocalAddress() {
-        return null;
+        return channel.getLocalAddress();
     }
 
     @Override
     public void send(Object message) throws RemotingException {
 
+        throw new RuntimeException("send异常");
     }
 
     @Override
     public void send(Object message, boolean sent) throws RemotingException {
-
+        throw new RuntimeException("send异常");
     }
 
     @Override
     public void close() {
-
+        throw new RuntimeException("close异常");
     }
 
     @Override
     public void close(int timeout) {
-
+        throw new RuntimeException("close异常");
     }
 
     @Override
     public void startClose() {
-
+        throw new RuntimeException("startClose异常");
     }
 
     @Override
     public boolean isClosed() {
-        return false;
+        return channel.isClosed();
+    }
+
+    static HeaderExchangeChannel getOrAddChannel(Channel ch) {
+        if (ch == null) {
+            return null;
+        }
+        HeaderExchangeChannel ret = (HeaderExchangeChannel) ch.getAttribute(CHANNEL_KEY);
+        if (ret == null) {
+            ret = new HeaderExchangeChannel(ch);
+            if (ch.isConnected()) { // 已连接
+                ch.setAttribute(CHANNEL_KEY, ret);
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * 移除 HeaderExchangeChannel 对象
+     *
+     * @param ch 通道
+     */
+    static void removeChannelIfDisconnected(Channel ch) {
+        if (ch != null && !ch.isConnected()) { // 未连接
+            ch.removeAttribute(CHANNEL_KEY);
+        }
     }
 }

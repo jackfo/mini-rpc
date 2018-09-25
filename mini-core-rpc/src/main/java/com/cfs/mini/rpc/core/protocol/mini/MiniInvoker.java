@@ -68,6 +68,7 @@ public class MiniInvoker<T> extends AbstractInvoker<T> {
         try{
             return (Result) currentClient.request(inv, timeout).get();
         } catch (Exception e) {
+           e.printStackTrace();
            throw new RpcException("远程调用出现异常");
         }
     }

@@ -96,10 +96,10 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         try {
             return doInvoke(invocation);
         }catch (Throwable t){
-
+            t.printStackTrace();
         }
 
-        return null;
+        throw new RpcException("远程调用异常");
     }
 
     protected abstract Result doInvoke(Invocation invocation) throws Throwable;

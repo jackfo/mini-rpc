@@ -13,6 +13,9 @@ import com.cfs.mini.remoting.transport.AbstractServer;
 import com.cfs.mini.remoting.transport.dispatcher.ChannelHandlers;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import java.util.Map;
@@ -49,6 +52,23 @@ public class NettyServer extends AbstractServer {
 
         // 实例化 ServerBootstrap
         bootstrap = new ServerBootstrap(channelFactory);
+
+        //创建相应的Handler句柄
+        final NettyHandler nettyHandler = new NettyHandler(getUrl(), this);
+        channels = nettyHandler.getChannels();
+
+        /**
+         * 设置通道进行相应处理
+         * */
+        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+            @Override
+            public ChannelPipeline getPipeline() {
+                ChannelPipeline pipeline = Channels.pipeline();
+                pipeline.addLast("handler", nettyHandler); // 处理器
+                return pipeline;
+            }
+        });
+
         channel = bootstrap.bind(getBindAddress());
     }
 
