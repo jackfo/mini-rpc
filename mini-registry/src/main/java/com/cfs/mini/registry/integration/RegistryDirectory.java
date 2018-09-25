@@ -459,8 +459,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             // 【第一】可根据第一个参数枚举路由
             if (args != null && args.length > 0 && args[0] != null
                     && (args[0] instanceof String || args[0].getClass().isEnum())) {
-//                invokers = localMethodInvokerMap.get(methodName + "." + args[0]); // The routing can be enumerated according to the first parameter
-                invokers = localMethodInvokerMap.get(methodName + args[0]); // The routing can be enumerated according to the first parameter
+                invokers = localMethodInvokerMap.get(methodName + args[0]);
             }
             // 【第二】根据方法名获得 Invoker 集合
             if (invokers == null) {

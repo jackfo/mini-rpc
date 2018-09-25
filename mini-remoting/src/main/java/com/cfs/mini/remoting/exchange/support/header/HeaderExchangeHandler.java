@@ -5,6 +5,8 @@ import com.cfs.mini.remoting.ChannelHandler;
 import com.cfs.mini.remoting.RemotingException;
 import com.cfs.mini.remoting.exchange.ExchangeChannel;
 import com.cfs.mini.remoting.exchange.ExchangeHandler;
+import com.cfs.mini.remoting.exchange.Request;
+import com.cfs.mini.remoting.exchange.suport.DefaultFuture;
 import com.cfs.mini.remoting.transport.ChannelHandlerDelegate;
 
 public class HeaderExchangeHandler implements ChannelHandlerDelegate {
@@ -54,9 +56,40 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     }
 
+
     @Override
     public void sent(Channel channel, Object message) throws RemotingException {
-        System.out.println("发送消息");
+        Throwable exception = null;
+        try{
+            // 设置最后的写时间
+            channel.setAttribute(KEY_WRITE_TIMESTAMP, System.currentTimeMillis());
+            ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
+            try {
+                // 提交给装饰的 `handler`，继续处理
+                handler.sent(exchangeChannel, message);
+            } finally {
+                // 移除 ExchangeChannel 对象，若已断开
+                HeaderExchangeChannel.removeChannelIfDisconnected(channel);
+            }
+        } catch (Throwable t) {
+            exception = t; // 记录异常，等下面在抛出。其实，这里可以写成 finally 的方式。
+        }
+        // 若是请求，标记已发送
+        if (message instanceof Request) {
+            Request request = (Request) message;
+            DefaultFuture.sent(channel, request);
+        }
+
+        if (exception != null) {
+            if (exception instanceof RuntimeException) {
+                throw (RuntimeException) exception;
+            } else if (exception instanceof RemotingException) {
+                throw (RemotingException) exception;
+            } else {
+                throw new RemotingException(channel.getLocalAddress(), channel.getRemoteAddress(),
+                        exception.getMessage(), exception);
+            }
+        }
     }
 
     @Override

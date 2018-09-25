@@ -5,11 +5,13 @@ import com.cfs.mini.common.URL;
 import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.NetUtils;
+import com.cfs.mini.remoting.Channel;
 import com.cfs.mini.remoting.ChannelHandler;
 import com.cfs.mini.remoting.RemotingException;
 import com.cfs.mini.remoting.Server;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 
 public abstract class AbstractServer extends AbstractEndpoint implements Server {
 
@@ -73,5 +75,17 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
 
     public InetSocketAddress getBindAddress() {
         return bindAddress;
+    }
+
+    @Override
+    public void send(Object message, boolean sent) throws RemotingException {
+        // 获得所有的客户端的通道
+        Collection<Channel> channels = getChannels();
+        // 群发消息
+        for (Channel channel : channels) {
+            if (channel.isConnected()) {
+                channel.send(message, sent);
+            }
+        }
     }
 }

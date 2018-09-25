@@ -83,6 +83,7 @@ public class NettyHandler extends SimpleChannelHandler {
 
     @Override
     public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+        //将通道上下文写入
         super.writeRequested(ctx, e);
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.getChannel(), url, handler);
         try {

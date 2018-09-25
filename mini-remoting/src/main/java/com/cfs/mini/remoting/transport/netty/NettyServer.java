@@ -6,6 +6,7 @@ import com.cfs.mini.common.logger.Logger;
 import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.ExecutorUtil;
 import com.cfs.mini.common.utils.NamedThreadFactory;
+import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.remoting.Channel;
 import com.cfs.mini.remoting.ChannelHandler;
 import com.cfs.mini.remoting.RemotingException;
@@ -18,6 +19,8 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,8 +42,6 @@ public class NettyServer extends AbstractServer {
 
     private Map<String, Channel> channels;
 
-    /**打开服务器*/
-    @SuppressWarnings("Duplicates")
     @Override
     protected void doOpen() {
 
@@ -56,7 +57,6 @@ public class NettyServer extends AbstractServer {
         //创建相应的Handler句柄
         final NettyHandler nettyHandler = new NettyHandler(getUrl(), this);
         channels = nettyHandler.getChannels();
-
         /**
          * 设置通道进行相应处理
          * */
@@ -106,4 +106,17 @@ public class NettyServer extends AbstractServer {
             logger.warn(e.getMessage(), e);
         }
     }
+
+    public Collection<Channel> getChannels() {
+        Collection<Channel> chs = new HashSet<Channel>();
+        for (Channel channel : this.channels.values()) {
+            if (channel.isConnected()) {
+                chs.add(channel);
+            } else {
+                channels.remove(NetUtils.toAddressString(channel.getRemoteAddress()));
+            }
+        }
+        return chs;
+    }
+
 }

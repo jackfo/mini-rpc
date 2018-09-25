@@ -15,7 +15,7 @@ import com.cfs.mini.remoting.transport.codec.CodecAdapter;
 
 import java.net.InetSocketAddress;
 
-public class AbstractEndpoint extends AbstractPeer implements Resetable {
+public abstract class AbstractEndpoint extends AbstractPeer implements Resetable {
 
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractEndpoint.class);
@@ -59,10 +59,7 @@ public class AbstractEndpoint extends AbstractPeer implements Resetable {
         return null;
     }
 
-    @Override
-    public void send(Object message, boolean sent) throws RemotingException {
 
-    }
 
     protected Codec2 getCodec() {
         return codec;

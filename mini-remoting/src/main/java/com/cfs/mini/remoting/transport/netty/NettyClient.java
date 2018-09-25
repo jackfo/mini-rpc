@@ -52,6 +52,8 @@ public class NettyClient extends AbstractClient {
             }
         });
 
+
+
     }
 
     @Override

@@ -203,15 +203,13 @@ public class DefaultFuture implements ResponseFuture {
                 try{
                     for(DefaultFuture future : FUTURES.values()){
                         if(future==null||future.isDone()){
-                            if (System.currentTimeMillis() - future.getStartTimestamp() > future.getTimeout()) {
-                                // 创建超时 Response
+                            if (System.currentTimeMillis() - future.getStartTimestamp() > future.getTimeout()) {// 创建超时 Response
                                 // create exception response.
                                 Response timeoutResponse = new Response(future.getId());
                                 // set timeout status.
                                 timeoutResponse.setStatus(future.isSent() ? Response.SERVER_TIMEOUT : Response.CLIENT_TIMEOUT);
                                 timeoutResponse.setErrorMessage(future.getTimeoutMessage(true));
                                 // 响应结果
-                                // handle response.
                                 DefaultFuture.received(future.getChannel(), timeoutResponse);
                             }
                         }
@@ -238,5 +236,17 @@ public class DefaultFuture implements ResponseFuture {
                 + timeout + " ms, request: " + request + ", " +
                 // 连接的服务器
                 "channel: " + channel.getLocalAddress() + " -> " + channel.getRemoteAddress();
+    }
+
+
+    public static void sent(Channel channel, Request request) {
+        DefaultFuture future = FUTURES.get(request.getId());
+        if (future != null) {
+            future.doSent();
+        }
+    }
+
+    private void doSent() {
+        sent = System.currentTimeMillis();
     }
 }

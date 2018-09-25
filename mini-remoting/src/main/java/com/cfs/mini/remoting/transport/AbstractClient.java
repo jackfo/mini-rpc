@@ -29,11 +29,16 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
 
     private static final AtomicInteger CLIENT_THREAD_POOL_ID = new AtomicInteger();
 
+    /**发送消息时,若断开是否重连*/
+    private final boolean send_reconnect;
+
     /**连接锁*/
     private final Lock connectLock = new ReentrantLock();
 
     public AbstractClient(URL url, ChannelHandler handler) throws RemotingException {
         super(url, handler);
+        /**从URL中获取重连相关配置*/
+        send_reconnect = url.getParameter(Constants.SEND_RECONNECT_KEY, false);
         try{
             doOpen();
         } catch (Throwable t) {
@@ -137,5 +142,23 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         url = url.addParameterIfAbsent(Constants.THREADPOOL_KEY, Constants.DEFAULT_CLIENT_THREADPOOL);
         // 包装通道处理器
         return ChannelHandlers.wrap(handler, url);
+    }
+
+    /**
+     *
+     * */
+    @Override
+    public void send(Object message, boolean sent) throws RemotingException {
+        // 未连接时，开启重连功能，则先发起连接
+        if (send_reconnect && !isConnected()) {
+            connect();
+        }
+
+        Channel channel = getChannel();
+        //TODO Can the value returned by getChannel() be null? need improvement.
+        if (channel == null || !channel.isConnected()) {
+            throw new RemotingException(this, "message can not send, because channel is closed . url:" + getUrl());
+        }
+        channel.send(message, sent);
     }
 }
