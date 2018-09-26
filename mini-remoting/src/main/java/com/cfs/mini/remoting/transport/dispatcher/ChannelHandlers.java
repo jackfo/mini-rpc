@@ -2,7 +2,10 @@ package com.cfs.mini.remoting.transport.dispatcher;
 
 
 import com.cfs.mini.common.URL;
+import com.cfs.mini.common.extension.ExtensionLoader;
 import com.cfs.mini.remoting.ChannelHandler;
+import com.cfs.mini.remoting.Dispatcher;
+import com.cfs.mini.remoting.exchange.support.header.HeartbeatHandler;
 import com.cfs.mini.remoting.transport.MultiMessageHandler;
 
 /**
@@ -31,7 +34,11 @@ public class ChannelHandlers {
     }
 
     protected ChannelHandler wrapInternal(ChannelHandler handler, URL url) {
-        return new MultiMessageHandler(handler);
+        return new MultiMessageHandler(
+                new HeartbeatHandler(
+                        ExtensionLoader.getExtensionLoader(Dispatcher.class).getAdaptiveExtension().dispatch(handler, url)
+                )
+        );
     }
 
 }

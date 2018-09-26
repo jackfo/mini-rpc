@@ -6,7 +6,10 @@ import com.cfs.mini.common.URL;
 import com.cfs.mini.common.extension.Adaptive;
 import com.cfs.mini.common.extension.SPI;
 
-@SPI("netty")
+/**
+ * 默认采用Netty4的处理方式
+ * */
+@SPI("netty4")
 public interface Transporter {
 
     @Adaptive({Constants.SERVER_KEY, Constants.TRANSPORTER_KEY})

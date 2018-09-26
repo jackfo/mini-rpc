@@ -1,1 +1,2 @@
 netty=com.cfs.mini.remoting.transport.netty.NettyTransporter
+netty4=com.cfs.mini.remoting.transport.netty4.NettyTransporter
