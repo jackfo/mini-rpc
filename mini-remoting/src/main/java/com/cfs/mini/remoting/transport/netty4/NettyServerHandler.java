@@ -1,6 +1,8 @@
 package com.cfs.mini.remoting.transport.netty4;
 
 import com.cfs.mini.common.URL;
+import com.cfs.mini.common.logger.Logger;
+import com.cfs.mini.common.logger.LoggerFactory;
 import com.cfs.mini.common.utils.NetUtils;
 import com.cfs.mini.remoting.Channel;
 import com.cfs.mini.remoting.ChannelHandler;
@@ -11,8 +13,11 @@ import io.netty.channel.ChannelPromise;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NettyServerHandler extends ChannelDuplexHandler {
+
+    public static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
 
     /**通道集合*/
     private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>();
@@ -20,6 +25,11 @@ public class NettyServerHandler extends ChannelDuplexHandler {
     private final URL url;
 
     private final ChannelHandler handler;
+
+    private static final AtomicInteger ACTIVE_COUNT = new AtomicInteger(0);
+    private static final AtomicInteger CONNECTION_COUNT = new AtomicInteger(0);
+    private static final AtomicInteger READ_COUNT = new AtomicInteger(0);
+
 
     public NettyServerHandler(URL url, ChannelHandler handler) {
         if (url == null) {
@@ -42,6 +52,9 @@ public class NettyServerHandler extends ChannelDuplexHandler {
      * */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+        logger.info(String.format("激活次数:%d",ACTIVE_COUNT.incrementAndGet()),"服务端通道激活");
+
         ctx.fireChannelActive();
         //获取RPC中对应的通道
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
@@ -72,12 +85,14 @@ public class NettyServerHandler extends ChannelDuplexHandler {
 
     @Override
     public void disconnect(ChannelHandlerContext ctx, ChannelPromise future) {
+        logger.info(String.format("断开次数:%d",ACTIVE_COUNT.incrementAndGet()),"服务端通道断开");
         // 因为没有请求从远端断开 Channel
     }
 
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        logger.info(String.format("激活读取:%d",ACTIVE_COUNT.incrementAndGet()),"服务端通道读取");
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
         try {
             handler.received(channel, msg);
@@ -88,6 +103,7 @@ public class NettyServerHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        logger.info(String.format("写入次数:%d",ACTIVE_COUNT.incrementAndGet()),"服务端通道写入");
         // 发送消息
         super.write(ctx, msg, promise);
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);

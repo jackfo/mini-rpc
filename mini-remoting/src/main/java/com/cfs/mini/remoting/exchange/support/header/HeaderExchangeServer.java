@@ -11,11 +11,14 @@ import com.cfs.mini.remoting.exchange.ExchangeServer;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HeaderExchangeServer implements ExchangeServer {
 
 
     private final Server server;
+
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     public HeaderExchangeServer(Server server) {
         if (server == null) {
@@ -31,6 +34,16 @@ public class HeaderExchangeServer implements ExchangeServer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Collection<Channel> getChannels() {
         return (Collection) getExchangeChannels();
+    }
+
+    @Override
+    public Channel getChannel(InetSocketAddress remoteAddress) {
+        return null;
+    }
+
+    @Override
+    public boolean isBound() {
+        return false;
     }
 
 
@@ -68,12 +81,19 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     @Override
     public void send(Object message) throws RemotingException {
+        if (closed.get()) {
+            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", cause: The server " + getLocalAddress() + " is closed!");
+        }
+        server.send(message);
 
     }
 
     @Override
     public void send(Object message, boolean sent) throws RemotingException {
-
+        if (closed.get()) {
+            throw new RemotingException(this.getLocalAddress(), null, "Failed to send message " + message + ", cause: The server " + getLocalAddress() + " is closed!");
+        }
+        server.send(message, sent);
     }
 
     @Override

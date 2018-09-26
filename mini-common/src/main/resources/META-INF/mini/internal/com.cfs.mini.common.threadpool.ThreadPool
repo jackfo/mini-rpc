@@ -1,0 +1,2 @@
+fixed=com.cfs.mini.common.threadpool.support.fix.FixedThreadPool
+cached=com.cfs.mini.common.threadpool.support.cached.CachedThreadPool

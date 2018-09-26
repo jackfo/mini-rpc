@@ -19,6 +19,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -117,6 +118,16 @@ public class NettyServer extends AbstractServer {
             }
         }
         return chs;
+    }
+
+    @Override
+    public Channel getChannel(InetSocketAddress remoteAddress) {
+        return null;
+    }
+
+    @Override
+    public boolean isBound() {
+        return false;
     }
 
 }

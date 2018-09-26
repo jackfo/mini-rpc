@@ -138,7 +138,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
     protected static ChannelHandler wrapChannelHandler(URL url, ChannelHandler handler) {
         // 设置线程名
         url = ExecutorUtil.setThreadName(url, CLIENT_THREAD_POOL_NAME);
-        // 设置使用的线程池类型
+        // 设置使用的线程池类型,默认采用缓存线程池
         url = url.addParameterIfAbsent(Constants.THREADPOOL_KEY, Constants.DEFAULT_CLIENT_THREADPOOL);
         // 包装通道处理器
         return ChannelHandlers.wrap(handler, url);
